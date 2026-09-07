@@ -107,3 +107,7 @@ This is the heart of the decision. There is no "best" topology; there is only th
 #### 🏆 The Production Pattern: The Two-Level Cache
 Check L1 (Local) first. If it misses, check L2 (Distributed). If that misses, go to the DB.
 *This provides the speed of local for absolute hot keys, the consistency of distributed for other keys, and the DB as the final fallback.*
+
+---
+
+⬅️ **[Previous: 1. Introduction to Caching](01_Introduction.md)** | 🏠 **[Back to README](README.md)** | **[Next: 3. Cache Updating Strategies ➡️](03_Updating_Strategies.md)**

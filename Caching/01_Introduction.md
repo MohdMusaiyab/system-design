@@ -103,3 +103,7 @@ I need to monitor this obsessively in production. If my hit ratio drops from 95%
 
 **⚠️ The Dangerous Trap:**
 A high hit ratio (99%) does not mean the cache is perfectly healthy! If the cache returns stale data for a critical financial transaction, 99% hit ratio is catastrophic. **Hit ratio measures availability/performance, not correctness.** Invalidation ensures the hits serve the right data.
+
+---
+
+⬅️ **[Back to README](README.md)** | **[Next: 2. Cache Topologies & Layers ➡️](02_Cache_Layers.md)**
