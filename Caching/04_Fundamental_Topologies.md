@@ -47,4 +47,4 @@ Check L1 (Local) first. If it misses, check L2 (Distributed). If that misses, go
 
 ---
 
-⬅️ **[Previous: 3. Memory Hierarchy & Caching Layers](03_Memory_Hierarchy_And_Layers.md)** | 🏠 **[Back to TOC](README.md)**
+⬅️ **[Previous: 3. Memory Hierarchy & Caching Layers](03_Memory_Hierarchy_And_Layers.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 5. Core Caching Strategies ➡️](05_Cache_Updating_Strategies.md)**
