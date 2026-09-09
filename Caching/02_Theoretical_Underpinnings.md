@@ -5,13 +5,13 @@ Okay, we know what caching does, but why does it work so well in practice? The a
 
 There are two types:
 
-- **Temporal Locality (Time):** If I access a piece of data now, I am highly likely to access the exact same piece of data again very soon.
+- **Temporal Locality (Time):** If we access a piece of data now, we are highly likely to access the exact same piece of data again very soon.
   - *Backend Example:* A user logs in and fetches their profile. They immediately refresh their dashboard. Or 1,000 users log in at 9:00 AM and all fetch the company-wide settings.
-- **Spatial Locality (Space):** If I access data at a particular memory address, I am highly likely to access data at nearby memory addresses shortly after.
-  - *Backend Example:* If I fetch a user record from a database index, the B-Tree nodes around that record are likely loaded into the OS page cache. Or, sequentially fetching the next page of orders for `user_id = 123`.
+- **Spatial Locality (Space):** If we access data at a particular memory address, we are highly likely to access data at nearby memory addresses shortly after.
+  - *Backend Example:* If we fetch a user record from a database index, the B-Tree nodes around that record are likely loaded into the OS page cache. Or, sequentially fetching the next page of orders for `user_id = 123`.
 
 **The Mental Model:**
-Locality means that requests aren't random. They are heavily clustered. My system doesn't access the 10 million rows in my database uniformly. Instead, it pounds the same 100,000 rows over and over for an hour, then shifts to a different cluster of 100,000 rows. Caching exploits this clustering.
+Locality means that requests aren't random. They are heavily clustered. Our system doesn't access the 10 million rows in our database uniformly. Instead, it pounds the same 100,000 rows over and over for an hour, then shifts to a different cluster of 100,000 rows. Caching exploits this clustering.
 
 ---
 
@@ -23,7 +23,7 @@ This is the practical, measurable consequence of Locality of Reference in the re
 In modern backend systems, it's often even more extreme. Zipfian distributions are common—the top 1% of keys might account for 50% of the traffic.
 
 **Why this matters:**
-If my database has 1 Terabyte of data, I obviously cannot cache all of it (RAM is too expensive). But if the "working set" (the data actively used in in the last 5 minutes) is only 10 Gigabytes, I can cache that. You don't need a cache as big as your database; you just need a cache big enough to hold the hot working set. If I allocate memory to hold the top 20% of my most frequently accessed keys, my hit ratio will naturally be very high.
+If our database has 1 Terabyte of data, we obviously cannot cache all of it (RAM is too expensive). But if the "working set" (the data actively used in in the last 5 minutes) is only 10 Gigabytes, we can cache that. We don't need a cache as big as our database; we just need a cache big enough to hold the hot working set. If we allocate memory to hold the top 20% of our most frequently accessed keys, our hit ratio will naturally be very high.
 
 **Crucial Nuance:**
 This is a statistical rule, not a physical law. For some systems, it's 90/10. For others, it might be 50/50. The important engineering takeaway is this: **Measure your own access patterns.** Never assume a cache of size X will yield Y% hits; profile it first.
@@ -47,7 +47,7 @@ This depends entirely on the usecase:
 - **Internal User Session Cache:** ~70% might be fine if writes/churn are high.
 
 **Operational Impact:**
-I need to monitor this obsessively in production. If my hit ratio drops from 95% to 85% over a week, my data working set has grown. The existing cache size is no longer enough, and I need to increase memory before the database starts taking the extra 10% load and latency spikes.
+We need to monitor this obsessively in production. If our hit ratio drops from 95% to 85% over a week, our data working set has grown. The existing cache size is no longer enough, and we need to increase memory before the database starts taking the extra 10% load and latency spikes.
 
 **⚠️ The Dangerous Trap:**
 A high hit ratio (99%) does not mean the cache is perfectly healthy! If the cache returns stale data for a critical financial transaction, 99% hit ratio is catastrophic. **Hit ratio measures availability/performance, not correctness.** Invalidation ensures the hits serve the right data.

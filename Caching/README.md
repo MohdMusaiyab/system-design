@@ -15,3 +15,10 @@ This directory contains detailed notes, diagrams, and best practices regarding c
 5. **[Core Caching Strategies / Patterns](05_Cache_Updating_Strategies.md)**
 6. **[Cache Eviction Policies](06_Cache_Eviction_Policies.md)**
 7. **[Cache Invalidation](07_Cache_Invalidation.md)**
+8. **[Cache Consistency & The Leaky Cache](08_Cache_Consistency.md)**
+9. **[Distributed Caching Deep-Dive](09_Distributed_Caching_Deep_Dive.md)**
+10. **[Production Failure Modes & Stampedes](10_Production_Failure_Modes.md)**
+11. **[Migration Strategies](11_Migration_Strategies.md)**
+12. **[The "Unseen" Production Realities](12_Unseen_Production_Realities.md)**
+13. **[Glossary and Terminology](13_Glossary.md)**
+14. **[Prerequisites & Foundations Mapping](14_Prerequisites.md)**

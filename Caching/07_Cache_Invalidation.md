@@ -120,4 +120,4 @@ We layer these strategies based on the data classification:
 
 ---
 
-⬅️ **[Previous: 6. Cache Eviction Policies](06_Cache_Eviction_Policies.md)** | 🏠 **[Back to TOC](README.md)**
+⬅️ **[Previous: 6. Cache Eviction Policies](06_Cache_Eviction_Policies.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 8. Cache Consistency ➡️](08_Cache_Consistency.md)**
