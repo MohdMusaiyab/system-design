@@ -22,6 +22,26 @@ Now we zoom in on the two ways to implement application-level caches. This is a 
 > **🚨 The Critical Nuance:**
 > This gives us cross-instance consistency. If Instance A invalidates `user:123` in Redis, Instance B will immediately see that invalidation (or miss) on the next read, because they share the same centralized store. However, we introduce a network dependency—if Redis is slow or down, the application must handle that gracefully.
 
+### Architecture Comparison: Local vs. Distributed
+
+```mermaid
+flowchart TB
+    subgraph "Local Cache (Inconsistent Views)"
+        direction TB
+        AppA["⚙️ Instance A"] --- CacheA[("⚡ Local Cache (user=1)")]
+        AppB["⚙️ Instance B"] --- CacheB[("⚡ Local Cache (user=2)")]
+    end
+    
+    subgraph "Distributed Cache (Consistent View)"
+        direction TB
+        AppC["⚙️ Instance C"] --> Redis[("🌐 Shared Redis Cluster\n(user=2)")]
+        AppD["⚙️ Instance D"] --> Redis
+    end
+    
+    classDef stale fill:#f8d7da,stroke:#dc3545,stroke-width:2px,color:#333;
+    class CacheB stale;
+```
+
 ---
 
 ### 4.3 The Trade-off (Speed vs. Consistency vs. Capacity)
@@ -44,6 +64,21 @@ This is the heart of the decision. There is no "best" topology; there is only th
 #### 🏆 The Production Pattern: The Two-Level Cache
 Check L1 (Local) first. If it misses, check L2 (Distributed). If that misses, go to the DB.
 *This provides the speed of local for absolute hot keys, the consistency of distributed for other keys, and the DB as the final fallback.*
+
+```mermaid
+flowchart LR
+    Req["Incoming Request"] --> L1{"⚡ L1 (Local)"}
+    L1 -->|"Hit (~100ns)"| Ret["Return Fast"]
+    L1 -->|"Miss"| L2{"🌐 L2 (Redis)"}
+    
+    L2 -->|"Hit (~1ms)"| FillL1["Update L1"] --> Ret
+    L2 -->|"Miss"| DB[("🗄️ Primary DB")]
+    
+    DB -->|"Query (~10ms)"| FillL2["Update L2"] --> FillL1
+
+    classDef cache fill:#d4edda,stroke:#28a745,stroke-width:2px,color:#333;
+    class L1,L2 cache;
+```
 
 ---
 

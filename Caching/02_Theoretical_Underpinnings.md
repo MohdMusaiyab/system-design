@@ -20,6 +20,12 @@ This is the practical, measurable consequence of Locality of Reference in the re
 
 > The 80/20 rule states that roughly **80% of the requests** will hit roughly **20% of the data**.
 
+```mermaid
+pie title Requests hitting the Cache (Working Set)
+    "Working Set (20% of Data) gets 80% Traffic" : 80
+    "Cold Data (80% of Data) gets 20% Traffic" : 20
+```
+
 In modern backend systems, it's often even more extreme. Zipfian distributions are common—the top 1% of keys might account for 50% of the traffic.
 
 **Why this matters:**
@@ -36,6 +42,26 @@ Now that we know why caching works, how do we measure if our cache is actually w
 - **Cache Hit:** The requested key exists in the cache. We return the value instantly.
 - **Cache Miss:** The requested key does not exist in the cache. We must go to the source of truth (database, API, disk) to fetch it.
 
+```mermaid
+flowchart TD
+    Client(["Client Request"]) --> Check{"Is key in Cache?"}
+    
+    %% Hit Path
+    Check -->|"Yes (Cache Hit)"| ReturnCache["Return Cached Data"]
+    ReturnCache --> Client
+    
+    %% Miss Path
+    Check -->|"No (Cache Miss)"| FetchDB["Fetch from Database"]
+    FetchDB --> UpdateCache["Write Data to Cache"]
+    UpdateCache --> ReturnDB["Return Queried Data"]
+    ReturnDB --> Client
+    
+    classDef hit fill:#d4edda,stroke:#28a745,stroke-width:2px,color:#333;
+    classDef miss fill:#f8d7da,stroke:#dc3545,stroke-width:2px,color:#333;
+    class ReturnCache hit;
+    class FetchDB,UpdateCache miss;
+```
+
 **The Math:**
 - `Hit Ratio` = Hits / (Hits + Misses)
 - `Miss Ratio` = Misses / (Hits + Misses) 
@@ -49,7 +75,7 @@ This depends entirely on the usecase:
 **Operational Impact:**
 We need to monitor this obsessively in production. If our hit ratio drops from 95% to 85% over a week, our data working set has grown. The existing cache size is no longer enough, and we need to increase memory before the database starts taking the extra 10% load and latency spikes.
 
-**⚠️ The Dangerous Trap:**
+**The Dangerous Trap:**
 A high hit ratio (99%) does not mean the cache is perfectly healthy! If the cache returns stale data for a critical financial transaction, 99% hit ratio is catastrophic. **Hit ratio measures availability/performance, not correctness.** Invalidation ensures the hits serve the right data.
 
 ---

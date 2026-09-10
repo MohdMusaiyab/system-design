@@ -2,6 +2,29 @@
 
 The entire computing stack is basically a series of caching layers, each one trading speed for size and cost. The further we move from the CPU, the slower and cheaper the storage gets. The entire point of a modern OS is to manage this hierarchy so that the CPU rarely has to wait for the slowest layer.
 
+### The Caching Request Journey
+
+```mermaid
+flowchart TD
+    A["💻 Client (Browser Cache)"] -->|"Network (Internet)"| B["🌍 CDN (Edge Cache)"]
+    B -.->|"Cache Miss"| C["🛡️ Reverse Proxy Cache"]
+    C -.->|"Cache Miss"| D["⚙️ Application Server"]
+    
+    subgraph "Backend Infrastructure"
+        D -->|"1. Check"| E["⚡ Local Cache (App Heap)"]
+        E -.->|"2. Miss"| F["🌐 Distributed Cache (Redis)"]
+        F -.->|"3. Miss"| G["🗄️ Primary Database"]
+    end
+    
+    subgraph "OS & Hardware (Inside DB Node)"
+        G -->|"Query"| H["💽 OS Page / Buffer Cache"]
+        H -.->|"Block Miss"| I["🖲️ Physical Disk (SSD/HDD)"]
+    end
+
+    classDef cache fill:#e8f4f8,stroke:#0366d6,stroke-width:2px,color:#24292e;
+    class A,B,C,E,F,H cache;
+```
+
 ### 3.1 Hardware Layers (CPU Registers → L1/L2/L3 → RAM → Disk)
 This is the foundation. Every other software cache we build is just mimicking this physical design.
 
