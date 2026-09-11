@@ -15,6 +15,22 @@ Let's walk through the major policies, how they actually work under the hood, th
 **The Mental Model:**
 We treat the cache like a stack of books on a desk. Every time we use a book, we place it on the very top. When the desk is full and we need a new book, we look at the very bottom of the stack—the one that hasn't been touched in the longest time—and throw it away.
 
+```mermaid
+flowchart LR
+    Req["Request (Key D)"] --> Head
+    
+    subgraph "LRU Order (Doubly Linked List)"
+        direction LR
+        Head["Head (Key C)\nMost Recent"] <--> Node1["Node (Key A)"]
+        Node1 <--> Tail["Tail (Key B)\nLeast Recent"]
+    end
+    
+    Tail -.->|Evict to make room| Evicted[["Dropped Data"]]
+    
+    classDef stale fill:#f8d7da,stroke:#dc3545,stroke-width:2px;
+    class Tail stale;
+```
+
 **How it works under the hood:**
 To achieve `O(1)` lookups and `O(1)` evictions, we internally maintain a Doubly Linked List and a Hash Map.
 - The HashMap points to the node in the list.
@@ -34,7 +50,7 @@ It perfectly exploits **Temporal Locality**. If a key was accessed recently, it 
 - **Pros:** Exceptional hit ratio for standard web workloads (user sessions, product catalogs, news feeds). Implementation is relatively straightforward.
 - **Cons (The "Scan" problem):** Imagine we run a nightly ETL batch job that scans 1 million keys from our database. As this batch runs, it reads every single key once, pushing them to the head of the LRU list. By the end of the batch, our LRU cache is now filled with these 1 million cold, one-time-use keys, and our actual hot 20% working set has been pushed out and evicted. When 9:00 AM hits and our users log in, the cache is completely polluted, and we experience 100% cache misses, killing the database.
 
-> **🛠️ What we do in the real world to fix this:**
+> **CRITICAL ALERT: Fighting The Cache Scan Problem**
 > To fight the scan problem, we rarely rely on perfect LRU in high-scale distributed systems. Redis does not use a perfect LRU. Perfect LRU requires moving nodes in a linked list on every read, which takes a spinlock and has high overhead at 1 million+ QPS. Instead, Redis uses an **Approximated LRU**. When eviction is needed, Redis randomly samples a small set of keys (e.g., 5 keys), compares their last access timestamps, and evicts the oldest one. This is nearly as good as perfect LRU for random distributions but avoids the heavyweight linked-list pointer manipulation.
 
 ---
@@ -55,7 +71,7 @@ LFU solves the Scan/Pollution problem decisively. The nightly ETL batch that rea
 - **Pros:** Highly resistant to cache pollution. Excellent for workloads with a permanently "hot" set of items (like a global leaderboard or a celebrity profile).
 - **Cons (The "Decay" problem):** LFU suffers from lack of temporal decay. Imagine a weekly flash-sale event. Product "A" is hammered 10 million times on Monday. Product "B" becomes the new flash-sale item on Friday. Product "A" has a massive counter. Under strict LFU, "A" will stay in the cache forever, and "B" (which now has a counter of only "1") will keep getting evicted, even though temporal locality says B is now the hot key.
 
-> **🛠️ What we do in the real world:**
+> **CRITICAL CONCEPT: Decaying LFU**
 > To fix this, we never use a pure counter. We use **Decaying LFU**. Redis handles this beautifully: It stores a counter that is reduced over time. As time passes, old counters logarithmically decrease, so stale "old hot" keys slowly drift down, allowing new "current hot" keys to compete fairly.
 
 ---
@@ -106,9 +122,21 @@ Instead of picking LRU or LFU, we use a policy that dynamically balances between
 - **Pros:** The highest possible hit ratio without manual tuning. Handles unpredictable traffic patterns beautifully.
 - **Cons:** Implementation is extremely complex. Managing ghost lists and frequency sketches consumes extra memory (though Caffeine optimizes this heavily).
 
-> **🛠️ What we do in the real world:**
+> **What we do in the real world:**
 > - For **Distributed caches (Redis/Memcached)**, we stick with LRU or LFU because the memory per key is precious, and we don't want the overhead of maintaining complex ghost lists across a cluster.
 > - For **Local/In-Process caches (within the JVM)**, we use Caffeine as our default, because we have more heap flexibility, and the adaptive nature significantly boosts our local hit ratio without any configuration changes.
+
+```mermaid
+flowchart TD
+    Req["Incoming Data"] --> W["Admission Window (LRU)"]
+    W -.->|Eviction Candidate| F{"Frequency Filter\n(Count-Min Sketch)"}
+    
+    F -->|Frequent Enough| M["Main Segment (LFU)"]
+    F -->|Not Frequent| Trash[["Discarded directly"]]
+    
+    classDef main fill:#d4edda,stroke:#28a745,stroke-width:2px;
+    class M main;
+```
 
 ---
 
@@ -127,7 +155,7 @@ We need a quick glance at how these actually work under the hood to make better 
 
 ---
 
-## 🏆 The Real-World Engineering Choice (Our Rule of Thumb)
+## The Real-World Engineering Choice (Our Rule of Thumb)
 
 - **If we are running Redis:** We start with `volatile-lru` (evict the least recently used among keys that have a TTL). If we don't use TTLs, we use `allkeys-lru`. If we see scan-heavy nightly jobs, we upgrade to `allkeys-lfu`.
 - **If we are running Memcached:** We accept the LRU structure and ensure our slab sizes are tuned so that keys of similar sizes don't cannibalize each other.

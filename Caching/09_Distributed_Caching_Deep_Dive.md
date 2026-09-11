@@ -26,8 +26,22 @@ Redis Cluster does not use the classic ring-based Consistent Hashing. Instead, i
 - **Consistent Hashing (Ring):** Great for dynamic nodes, but requires a client-side library to handle the ring logic.
 - **Redis Cluster (Slots):** Simpler to reason about (exact slot ranges). Resharding is a manual process (`redis-cli --cluster reshard`) where we move slots between nodes. During resharding, the cluster is still available, but the specific keys being moved will return a `MOVED` error, telling the client to redirect to the correct node.
 
-> **💡 What we generally do:**
-> We use Redis Cluster with Hash Slots when we need high availability and automatic failover. For simpler setups, we use client-side sharding (like Twemproxy or lettuce with Consistent Hashing) to avoid the operational overhead of a cluster.
+> **THE PRODUCTION PATTERN:**
+> We use Redis Cluster with Hash Slots when we need high availability and automatic failover. For simpler setups, we use client-side sharding (like Twemproxy or Lettuce with Consistent Hashing) to avoid the operational overhead of a cluster.
+
+```mermaid
+flowchart LR
+    Client["Client Request (user:123)"]
+    
+    Hash{"CRC16(key) % 16384\n= Slot 8500"}
+    
+    NodeA[("Node A\nSlots 0-5000")]
+    NodeB[("Node B\nSlots 5001-10000")]
+    NodeC[("Node C\nSlots 10001-16383")]
+    
+    Client --> Hash
+    Hash -->|"Routes to"| NodeB
+```
 
 ---
 
@@ -46,8 +60,23 @@ It horizontally scales our read throughput. If we have 1 primary and 3 replicas,
 - **Asynchronous Replication:** Data is replicated to replicas after the primary returns success to the client. This creates a replication lag (usually sub-millisecond, but can grow under heavy write load). This means replicas serve stale data compared to the primary.
 - **The "Master-Split" problem:** If our application writes to the primary and immediately tries to read from a replica, it might not see its own write yet. This violates Read-Your-Writes Consistency.
 
-> **💡 What we generally do:**
+> **THE PRODUCTION PATTERN:**
 > We use replicas strictly for heavy read workloads where a few milliseconds of staleness is acceptable (e.g., product listings, analytics dashboards). For critical reads (like checking balance), we force the application to read from the primary.
+
+```mermaid
+flowchart TD
+    App["Application"]
+    
+    Primary[("Primary Node\n(Read/Write)")]
+    Rep1[("Replica 1\n(Read-Only)")]
+    Rep2[("Replica 2\n(Read-Only)")]
+    
+    App -->|"Writes & Critical Reads"| Primary
+    Primary -.->|"Async Replication"| Rep1
+    Primary -.->|"Async Replication"| Rep2
+    App -->|"Eventual Reads"| Rep1
+    App -->|"Eventual Reads"| Rep2
+```
 
 ---
 
@@ -66,8 +95,8 @@ Redis logs every single write operation to a file (`appendonly.aof`) in real-tim
 - **Pros:** Minimal data loss (default `everysec` loses at most 1 second of data). Very durable.
 - **Cons:** AOF files can grow extremely large and slow down restart time (Redis has to replay the entire log). This also uses more disk I/O.
 
-> **🛠️ The Production Pattern:**
-> We enable both RDB and AOF. We use AOF with `appendfsync everysec` as our primary durability mechanism. We use RDB snapshots as a backup for disaster recovery (e.g., backing up to S3 daily). When Redis restarts, it plays the AOF log (which is more complete) rather than the RDB snapshot.
+> **THE PRODUCTION PATTERN:**
+> We enable both RDB and AOF. We use AOF with `appendfsync everysec` as our primary durability mechanism. We use RDB snapshots as a backup for disaster recovery (e.g., backing up to S3 daily). When Redis restarts, it replays the AOF log (which is more complete) rather than the RDB snapshot.
 
 **The Critical Trade-off:**
 Do we need persistence at all? If we are purely using Redis as a database cache where a miss just goes to the primary DB, we might disable persistence entirely to maximize performance. For session storage or rate-limiting counters, we enable AOF because losing those counters could cause security or availability issues.
@@ -98,7 +127,7 @@ We are storing a `User` object (with nested addresses, roles, preferences). We c
 - **For public-facing APIs:** We use MessagePack. It gives us the efficiency of binary without requiring a strict schema contract.
 - **For debugging and small metadata:** We use JSON. It's human-readable, making it easy for engineers to inspect keys via `redis-cli`. However, we set a hard rule: JSON is only for keys under 1KB. For large objects, we force Protobuf.
 
-**The Critical Nuance (Compression):**
+**CRITICAL CONCEPT: Compression**
 Sometimes, even after serialization, the payload is still large. We add a compression layer (like LZ4 or Snappy) after serialization and before storing in Redis. This reduces memory by 30-50% at the cost of CPU cycles. We generally only do this for objects larger than 5KB.
 
 ---

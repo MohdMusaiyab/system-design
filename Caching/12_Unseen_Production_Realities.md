@@ -15,6 +15,19 @@ We explicitly cache the `NULL` result with a short TTL (e.g., 60 seconds). `cach
 **Mitigation 2 (Bloom Filter):**
 We keep a Bloom Filter in memory that contains all existing user IDs. Before we query the cache, we check the Bloom Filter. If it says "Definitely doesn't exist," we return a 404 immediately, never hitting the DB at all.
 
+```mermaid
+flowchart LR
+    Req["GET /user/999\n(Malicious/Invalid)"] --> BF{"Bloom Filter\n(In-Memory)"}
+    
+    BF -->|"Definitely Not in System"| 404["Return 404 Fast"]
+    BF -->|"Might exist"| Cache{"Cache"}
+    
+    Cache -->|"Miss"| DB[("Database")]
+    
+    classDef safe fill:#d4edda,stroke:#28a745,stroke-width:2px;
+    class 404 safe;
+```
+
 ---
 
 ### 12.2 Cache Breakdown / Hot Keys
@@ -27,6 +40,21 @@ We replicate the hot key client-side. We explicitly store the same value on mult
 
 **Alternatively (and preferably):**
 We use **Local Caching** for this specific key. We cache this hot object in the application's local heap for 5 seconds using Caffeine or Guava. This stops the network calls to Redis entirely and absorbs the spikes locally before they hit the wire.
+
+```mermaid
+flowchart TD
+    Req["1M Requests for 'hotkey'"] --> App1["App Node 1\n(Local Cache)"]
+    Req --> App2["App Node 2\n(Local Cache)"]
+    
+    App1 -->|"Local Cache Hit (99.9%)"| Return1["Fast Return"]
+    App2 -->|"Local Cache Hit (99.9%)"| Return2["Fast Return"]
+    
+    App1 -.->|"Miss (Only 1 req/5sec)"| Redis[("Redis")]
+    App2 -.->|"Miss (Only 1 req/5sec)"| Redis
+    
+    classDef cache fill:#e8f4f8,stroke:#0366d6,stroke-width:2px;
+    class App1,App2 cache;
+```
 
 ---
 
@@ -56,7 +84,7 @@ Each key in Redis has a `redisObject` overhead of roughly 100-150 bytes (dict en
 **Our Approach:**
 We run a Benchmark in staging. We pull a sample of production traffic (e.g., 1 hour of requests) and replay it against a small Redis instance. We observe the memory used and extrapolate linearly.
 
-> **💡 The Golden Rule of Thumb:**
+> **THE GOLDEN RULE OF THUMB:**
 > We never fill Redis above **75%** of its maxmemory. We leave 25% headroom for memory fragmentation (especially with high churn). If we estimate we need 8GB, we provision a 12GB instance. This prevents the OOM Killer from silently ending our cache.
 
 ---

@@ -20,7 +20,7 @@ It is the default state of 99% of web caches. It gives us maximum read throughpu
 - **Pros:** Maximum availability. Maximum read throughput. We are immune to network partitions affecting cache reads.
 - **Cons:** We serve incorrect data. If a user changes their profile picture and refreshes, they might see the old picture for 5 seconds. The UX is "eventually consistent."
 
-> **🚨 The Critical Nuance We Must Remember:**
+> **CRITICAL NUANCE:**
 > Eventual consistency is not an excuse for broken logic. If we are using this model, we must ensure that our business logic does not rely on the cache being up-to-date. For example, we should never check a cached `user.balance` to determine if they can purchase an item. The cache is for display only in this model.
 
 ---
@@ -46,7 +46,7 @@ We are moving away from Cache-Aside (lazy) to Read-Through + Write-Through (Sync
 - **Pros:** Absolute data correctness for the user. No "WTF" moments where they see stale data.
 - **Cons:** Reduced Availability and Higher Latency. If Redis is slow or unreachable, the entire write operation fails. Our system is now coupled to the health of Redis. Write latency increases by the network round-trip to Redis (typically +1–2ms), which is significant for high-throughput services.
 
-> **💡 Critical Nuance:**
+> **CRITICAL CONCEPT:**
 > Strong consistency is expensive at scale. We generally limit it to a tiny subset of our data (the "critical path"). We do not apply Strong Consistency to our entire product catalog; we apply it only to the specific keys that financial transactions depend on.
 
 ---
@@ -59,10 +59,24 @@ Here are the four primary ways the DB and cache get out of sync, and how we hand
 
 #### Root Cause A: The Concurrent "Lost Update" Race (The Classic Trap)
 This is the most insidious invalidation bug.
-1. Read A checks the cache for `key:user123`. It misses (cache is empty).
-2. Read A starts a database query to fetch `user123` (takes 100ms).
-3. Write B updates `user123` in the database and successfully deletes the cache key.
-4. Read A finishes its DB query (which fetched the old state, because the DB write happened after Read A started) and writes the old state back into the cache.
+
+```mermaid
+sequenceDiagram
+    participant ReadA
+    participant WriteB
+    participant Cache
+    participant DB
+    
+    ReadA->>Cache: 1. GET user123 (Miss)
+    ReadA->>DB: 2. Query DB (Fetching state v1)
+    
+    WriteB->>DB: 3. UPDATE user123 (Commits v2)
+    WriteB->>Cache: 4. DELETE user123 (Invalidates cache)
+    
+    DB-->>ReadA: 5. DB returns v1 to ReadA
+    ReadA->>Cache: 6. SET user123 to v1
+    Note over ReadA,Cache: Cache is now permanently serving stale v1 data.
+```
 
 *The cache now contains old data, even though the DB has new data. The cache has "leaked" stale data past the invalidation.*
 
@@ -106,6 +120,19 @@ We need to add three more concepts here because they directly map to the user ex
 **The Problem:** We update our profile picture. We refresh the page. We see the old picture because the read request hit a stale cache replica.
 **The Fix:** We implement **Sticky Sessions** (or "Pin to Cache Node"). Once a user performs a write, we route all subsequent reads *for that user* to the specific cache replica that just received the invalidation. We guarantee that a user always sees their own writes immediately, even if other users don't.
 
+```mermaid
+flowchart LR
+    User("Client") -->|"1. Write Profile"| LB["Load Balancer"]
+    LB -->|"Routes Write"| N1["Node A (Primary)"]
+    N1 --> DB[("Database")]
+    
+    User -.->|"2. Reads Profile"| LB
+    LB -.->|"Sticky Routing"| N1
+    N1 -.->|"Returns fresh data"| User
+    
+    LB -.-x|"Doesn't route to stale"| N2["Node B (Replica)"]
+```
+
 #### 8.4.2 Monotonic Reads (No Time-Travel)
 **The Problem:** We refresh a dashboard. It shows Balance: $100. We refresh again 1 second later. It shows Balance: $50 (newer). We refresh a third time. It shows Balance: $100 (older). The data went backward in time. This shatters user trust.
 **The Fix:** We enforce monotonic reads. Once a client sees a specific version of the data (e.g., `v100`), they are never allowed to see a lower version (`v50`) for that key. The cache layer tracks the highest version seen by that client and rejects old cache responses.
@@ -116,7 +143,7 @@ We need to add three more concepts here because they directly map to the user ex
 
 ---
 
-## 🏆 The Real-World Engineering Choice (Our Rule of Thumb)
+## The Real-World Engineering Choice (Our Rule of Thumb)
 
 When we design a production system, we map consistency levels to our endpoints:
 
@@ -127,7 +154,7 @@ When we design a production system, we map consistency levels to our endpoints:
 | **Product Catalog** | Bounded Staleness (1m TTL) | Cache-Aside with a 60-second TTL. No event-driven invalidation needed. | Expensive to invalidate thousands of catalog keys. Serving 60s old prices is acceptable to save the DB. |
 | **Analytics / Aggregates** | Weak / Eventual (Unbounded) | Write-Behind with a 5-minute flush. | The "total sales" widget can be 5 minutes behind. The CEO won't refresh obsessively. |
 
-> **🧠 The Final Mental Model:**
+> **THE FINAL MENTAL MODEL:**
 > We must think of consistency as a spectrum of risk. Strong consistency minimizes risk (data correctness) but maximizes operational risk (Redis failures cause downtime). Weak consistency minimizes operational risk but maximizes data correctness risk.
 > 
 > Our job as backend engineers is to calibrate this spectrum precisely. We use Strong Consistency for the critical path (money, inventory), and we use Eventual/Bounded for everything else. The "Leaky Cache" is a constant we manage with TTLs and versioned writes, not a bug we try to eliminate entirely.

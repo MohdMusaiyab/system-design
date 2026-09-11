@@ -14,6 +14,25 @@ The application takes full responsibility. On a read:
 
 On a write: Update the database, then explicitly delete (or update) the key in the cache.
 
+```mermaid
+sequenceDiagram
+    participant App as Application
+    participant Cache as Cache
+    participant DB as Database
+
+    Note over App,DB: Read Path (Miss)
+    App->>Cache: 1. GET key
+    Cache-->>App: 2. Miss (Null)
+    App->>DB: 3. Query Data
+    DB-->>App: 4. Return Data
+    App->>Cache: 5. SET key (Populate)
+    
+    Note over App,DB: Write Path
+    App->>DB: 1. UPDATE DB
+    DB-->>App: 2. DB Success
+    App->>Cache: 3. DELETE key (Invalidate)
+```
+
 **Why we use it:**
 It's the most intuitive and widely used pattern because it only loads data into the cache when it's actually requested. We don't waste memory pre-populating data that nobody reads. It perfectly exploits the 80/20 rule—only the "20%" of hot data ever makes it into the cache.
 
@@ -25,7 +44,9 @@ It's the most intuitive and widely used pattern because it only loads data into 
 - **Cons:**
   - Higher latency on misses (3 steps: cache check → DB query → cache insert).
   - Stale data window: Between the time we update the DB and the time we delete/update the cache, the cache returns old data. This is the "eventual consistency" penalty.
-  - **Cache Stampede (Thundering Herd):** If a key expires and 1,000 concurrent requests arrive simultaneously, all 1,000 see a miss and hammer the database at the exact same instant.
+  
+> 🚨 **CRITICAL RISK: Cache Stampede (Thundering Herd)**
+> If a high-traffic key expires and 1,000 concurrent requests arrive simultaneously, all 1,000 see a cache miss and hammer the database at the exact same instant, potentially bringing the entire database down.
 
 **When to choose it (and why):**
 This is the default choice for 90% of read-heavy backend services (e.g., product catalogs, user profiles, session data). We choose it because it is simple to reason about and handles cache failures gracefully. We mitigate the stampede problem separately with mutex locks or "probabilistic early expiration".
@@ -55,6 +76,19 @@ When we're using local caches like Guava's `LoadingCache` or advanced distribute
 **What it is:**
 On a write (UPDATE/DELETE), the application writes to the cache first. The cache then synchronously takes responsibility for writing the data to the database. The app only gets a success response after the database has been successfully updated.
 
+```mermaid
+sequenceDiagram
+    participant App as Application
+    participant Cache as Cache
+    participant DB as Database
+
+    Note over App,DB: Synchronous Write Path
+    App->>Cache: 1. SET key
+    Cache->>DB: 2. UPDATE Data
+    DB-->>Cache: 3. DB Success
+    Cache-->>App: 4. Cache Success
+```
+
 **Why we use it:**
 To guarantee strong consistency between the cache and the database. If a write succeeds, we know the cache is 100% up-to-date. Subsequent reads will never fetch stale data.
 
@@ -72,12 +106,29 @@ We generally use this only for critical, frequently read data where consistency 
 **What it is:**
 The application writes to the cache and immediately returns a "success" to the user. The cache then asynchronously batches these writes and flushes them to the database in the background (usually every few seconds or when a threshold is met).
 
+```mermaid
+sequenceDiagram
+    participant App as Application
+    participant Cache as Cache
+    participant DB as Database
+
+    Note over App,DB: Asynchronous Write Path
+    App->>Cache: 1. SET key
+    Cache-->>App: 2. Fast Success (Return immediately)
+    
+    Note over Cache,DB: Background Process (Async)
+    Cache->>DB: 3. Batch Flush (e.g. every 5s)
+```
+
 **Why we use it:**
 To absorb massive write throughput and decouple the application from database latency. If our DB can handle 5,000 writes/sec but our application receives 50,000 writes/sec, we funnel them through Redis with Write-Behind. The cache batches them (e.g., accumulating counters) and flushes a single aggregated update to the DB.
 
 **The Trade-offs:**
 - **Pros:** Lowest write latency for the user. Drastically reduces the load on the primary database (batching is far more efficient than single row updates). Great for high-frequency metrics, logs, or social media "like" counters.
-- **Cons:** Data durability is at risk. If the cache node crashes before flushing the write to the database, that data is permanently lost. The system achieves Eventual Consistency—if the cache flushes every 5 seconds, the DB is up to 5 seconds stale.
+- **Cons:**
+
+> ⚠️ **DANGER: Severe Data Durability Risk**
+> If the cache node crashes before flushing the batched writes to the database, that data is permanently lost. The system achieves Eventual Consistency—if the cache flushes every 5 seconds, the DB is up to 5 seconds stale. Do not use for financial or critical data.
 
 **When to choose it:**
 We choose this strictly when we can tolerate data loss or when the data is inherently ephemeral (e.g., clickstream analytics, view counts, session activity pings). We never use this for financial transactions, authentication data, or user profile updates where losing the write is unacceptable.

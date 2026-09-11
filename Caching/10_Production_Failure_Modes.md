@@ -10,6 +10,23 @@ We must treat our cache as a "nice-to-have" service. If Redis goes down, our sys
 Redis hits its `maxmemory` limit. The Linux OS decides the process is using too much memory and fires the OOM (Out-of-Memory) killer, terminating Redis abruptly.
 - **Our response:** We use Circuit Breakers. The application detects the connection failure (e.g., `ConnectionRefused`), and fails open: it goes directly to the primary database without caching. We log the error aggressively and page the on-call engineer. We must ensure our DB can handle the sudden spike in traffic during the outage.
 
+```mermaid
+flowchart TD
+    App["Application"]
+    CB{"Circuit Breaker"}
+    Redis[("Redis (Crashed)")]
+    DB[("Primary Database")]
+    Alert((("PagerDuty Alert")))
+    
+    App -->|"GET key"| CB
+    CB -.->|"Attempt 1: Conn Refused"| Redis
+    CB == "Trips (Opens)" ==> DB
+    CB -.->|"Fires Alert"| Alert
+    
+    classDef fail fill:#f8d7da,stroke:#dc3545,stroke-width:2px;
+    class Redis fail;
+```
+
 #### 10.1.2 Network Partitions / Timeouts
 A network switch glitches. Redis is still running, but packets are dropping. GET requests hang for 5 seconds before timing out, holding up our application threads.
 - **Our response:** We set aggressive timeouts (e.g., 200ms for GET, 100ms for SET). We use a policy like fail-fast: if the timeout expires, we immediately cancel the operation and read from the DB. We never let the cache delay our critical path beyond the timeout.
@@ -31,6 +48,16 @@ These are the most dangerous because they don't just take down the cache; they t
 #### 10.2.1 Cache Stampede / Thundering Herd
 Our TTL on `product:456` expires at exactly 12:00:00. At 12:00:00, 5,000 concurrent users all refresh their shopping carts simultaneously. All 5,000 see a cache miss. All 5,000 execute the expensive database query to rebuild the cart. The database CPU spikes to 100%, queries start timing out, and the database crashes.
 
+```mermaid
+flowchart TD
+    Users["5,000 Concurrent Requests"] -->|12:00:00| Cache{"Cache (Miss)"}
+    Cache -->|"5,000 parallel threads"| DB[("Database")]
+    DB -.->|"💥 CPU Overload & Crash"| DB
+    
+    classDef danger fill:#f8d7da,stroke:#dc3545,stroke-width:2px,color:#333;
+    class DB danger;
+```
+
 #### 10.2.2 Dogpile Effect
 This is the same problem, but specifically named for the scenario where the cache key expires, and everyone hits the backend simultaneously because there is no coordination.
 
@@ -42,6 +69,31 @@ Here is how we defend against Cache Stampedes and Dogpiling in production:
 
 #### A. Mutex Locks (The Exclusive Recompute)
 We use Redis's `SETNX` (Set if Not Exists) to acquire a lock for a specific key. Only one thread (the first one that missed) acquires the lock and goes to the database. All other threads wait (or spin) for a very short period (e.g., 50ms) and then retry the cache. The winning thread writes the fresh data to the cache, and the waiting threads read the fresh data.
+
+```mermaid
+sequenceDiagram
+    participant T1 as Thread 1
+    participant T2 as Thread 2
+    participant Redis
+    participant DB
+    
+    T1->>Redis: GET key (Miss)
+    T2->>Redis: GET key (Miss)
+    
+    T1->>Redis: SETNX lock (Acquired ✅)
+    T2->>Redis: SETNX lock (Denied ❌)
+    
+    Note over T2: Thread 2 spins/waits (50ms)
+    
+    T1->>DB: Query DB
+    DB-->>T1: Return Data
+    T1->>Redis: SET key (Populate)
+    T1->>Redis: DEL lock (Release)
+    
+    T2->>Redis: GET key (Hit ✅)
+    Redis-->>T2: Return Data
+```
+
 - **Risk:** We must implement a strict TTL timeout on the lock itself to prevent a hung thread from blocking all recomputes forever.
 
 #### B. Probabilistic Early Expiry (Jitter)

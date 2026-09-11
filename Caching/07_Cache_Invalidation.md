@@ -10,8 +10,22 @@ There is a famous quote: *"There are only two hard problems in Computer Science:
 - **Distributed State (The CAP Theorem):** Our cache and our database are two distinct, independent state machines. When we update the database, we cannot atomically update the cache in the same transaction (unless we use complex 2PC, which we generally avoid). This creates a consistency window—a moment in time where the database has the new value, but the cache still has the old one.
 - **The "Ghost" Problem:** We don't just cache keys that exist. We often cache the absence of a key (e.g., `user:999` does not exist, so we cache a `NULL` to prevent cache penetration). Invalidation requires us to know about all possible variants of a key. If we rename a product ID, do we invalidate the old one? The complexity scales combinatorially.
 
-> **🧠 The Mental Model:**
+> **CRITICAL CONCEPT: The Race Condition Mental Model**
 > We should think of invalidation as a race condition between reads and writes. If a read happens immediately after a write, does it see the stale cache or the new database value? The answer depends entirely on our invalidation strategy.
+
+```mermaid
+sequenceDiagram
+    participant ReadA as Read Request
+    participant WriteB as Write Request
+    participant Cache
+    participant DB
+    
+    WriteB->>DB: 1. UPDATE user (v2)
+    ReadA->>Cache: 2. GET user
+    Cache-->>ReadA: 3. HIT (v1) - STALE
+    WriteB->>Cache: 4. DELETE user
+    Note over ReadA,Cache: ReadA received stale v1 before WriteB could invalidate it!
+```
 
 ---
 
@@ -36,7 +50,7 @@ It is the simplest and most resilient invalidation strategy. It acts as a safety
 - **Pros:** Trivial to implement. Handles all edge cases automatically. Requires no coordination between services.
 - **Cons:** We cannot choose a TTL that perfectly balances freshness and performance. A 1-second TTL means we hit the database constantly; a 1-hour TTL means we serve stale data for an hour. We are essentially giving up on strong consistency and embracing eventual consistency.
 
-> **🚨 The Critical Nuance We Must Remember:**
+> **CRITICAL ALERT: The TTL Fallacy**
 > TTL is **not** a replacement for explicit invalidation on critical writes. If a user updates their password, we cannot wait 5 minutes for the TTL to expire—they would be locked out of their account. For security-critical data, TTL is a fallback, not the primary invalidation mechanism.
 
 #### 7.2.2 Event-Based / Write-Triggered (Push Invalidation)
@@ -55,10 +69,23 @@ This is the gold standard for strong consistency. It allows us to invalidate the
 - **Pros:** Near-instant consistency. Excellent for fast-changing data where staleness is unacceptable.
 - **Cons:** Complex to implement. We must handle out-of-order events. If an event arrives late and a newer event was processed, we cannot blindly delete the cache, or we risk re-populating it with an old value. We also introduce a dependency on the message broker.
 
-> **🏆 The Production Pattern (Dual-Layer Invalidation):**
+> **THE PRODUCTION PATTERN: Dual-Layer Invalidation**
 > **Primary:** Synchronous `cache.delete(key)` on the write path for the local service.
 > **Secondary:** Asynchronous event published to Kafka to invalidate all other services that might have cached this key.
 > **Fallback:** A short TTL (e.g., 60 seconds) to guarantee eventual cleanup if either of the above fails.
+
+```mermaid
+flowchart TD
+    DB[(Primary Database)]
+    Kafka{{Event Bus / Kafka}}
+    Node1["⚙️ Service A"]
+    Node2["⚙️ Service B"]
+    
+    Node1 -- "1. Writes update" --> DB
+    DB -- "2. CDC / Event" --> Kafka
+    Kafka -. "3a. Invalidate Event" .-> Node1
+    Kafka -. "3b. Invalidate Event" .-> Node2
+```
 
 #### 7.2.3 Manual Invalidation (Explicit Cache.delete)
 
@@ -79,7 +106,7 @@ def update_user(user_id, new_data):
 - **Pros:** Extremely low latency. No external dependencies. Predictable behavior.
 - **Cons:** Tight coupling. If we update the database via a stored procedure, a background worker, or a direct SQL script, we might forget to invalidate the cache. 
 
-> **💡 Critical Nuance (Delete vs. Update):**
+> **CRITICAL NUANCE: Delete vs. Update**
 > We generally prefer `delete` over `set` on writes. Why? Because if we set the cache to the new value, and the database transaction fails (rollback), we are now serving a value that never actually committed. Deleting the key ensures that the next read will fetch the current committed state from the DB.
 
 #### 7.2.4 Versioning / Cache Busting
@@ -93,6 +120,22 @@ This eliminates the race condition entirely. Invalidation via delete has a "lost
 **Real-World Tech Example:**
 - **Static Assets (CDN):** We append a hash of the file content to the URL (e.g., `style.a1b2c3.css`). When we deploy new CSS, we generate a new hash. The CDN never needs to invalidate the old asset; browsers fetch the new URL automatically.
 - **Immutable Data Stores:** In event-sourced systems, we use versioned snapshots. The cache key is `snapshot:aggregate:456:103`. We only request the latest version.
+
+```mermaid
+flowchart LR
+    Client["Client"] -->|"Requests index.html"| Proxy["Server"]
+    Proxy -->|"Returns: src='app.v2.js'"| Client
+    Client -- "Requests app.v2.js" --> CDN
+    
+    subgraph "CDN Cache State"
+        direction TB
+        V1["app.v1.js"]:::rotting
+        V2["app.v2.js"]:::fresh
+    end
+    
+    classDef rotting fill:#f8d7da,stroke:#dc3545,stroke-dasharray: 5 5;
+    classDef fresh fill:#d4edda,stroke:#28a745;
+```
 
 **The Trade-offs:**
 - **Pros:** No invalidation coordination is required. No race conditions. Extremely safe.
@@ -111,7 +154,7 @@ We layer these strategies based on the data classification:
 | **Static Assets** (CSS, JS, Images) | Versioning (Cache Busting) | TTL (1y) | We serve old assets indefinitely. Invalidation is never needed; we simply issue new URLs. |
 | **Analytics / Counters** | TTL Only | None | We accept eventual consistency. The business doesn't care if the "view count" is 5 seconds stale. |
 
-> **⚠️ The Critical Misconception (The Trap):**
+> **CRITICAL ALERT: The Write-Amplification Trap**
 > *"We will just invalidate the cache on every write."*
 > 
 > This is the most common failure in distributed design. If we invalidate `user:123` on every profile update, and an admin bulk-updates 10,000 users, we suddenly send 10,000 invalidations to Redis and Kafka. This creates a write amplification problem. The cache can become slower than the database because of the sheer volume of delete operations. 

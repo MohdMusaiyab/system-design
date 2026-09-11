@@ -20,6 +20,20 @@ Caches are not static. We must actively upgrade and migrate them.
 5. **Phase 5:** Flip a configuration flag. All reads now go to Cluster B. Writes continue to both (or we can strategically stop writing to A).
 6. **Phase 6:** Decommission Cluster A after verifying metrics (hit ratio, latency).
 
+```mermaid
+flowchart LR
+    App["Application"]
+    DB[("Primary DB")]
+    OldCache[("Old Cache (A)")]
+    NewCache[("New Cache (B)")]
+    
+    App -->|"1. Reads"| OldCache
+    App -->|"2. Dual Writes"| OldCache
+    App -->|"2. Dual Writes"| NewCache
+    
+    DB -.->|"3. Async Backfill"| NewCache
+```
+
 #### 11.2.2 Gradual Key Migration (The "Traffic Shaping")
 We use Consistent Hashing (discussed in Section 9) and slowly increase the weight of the new nodes. We use a feature flag to redirect only 1% of traffic to the new cluster, then 5%, then 20%, then 100%. This allows us to slowly validate the new cluster's behavior under load before fully committing.
 
