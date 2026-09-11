@@ -2,7 +2,7 @@
 
 Welcome to my **System Design** repository! 🚀 
 
-This repository serves as my personal knowledge base and a comprehensive resource for learning system design concepts, architectures, and best practices. Whether you are preparing for interviews or looking to build scalable and robust applications, I hope you find these resources and notes helpful.
+This repository serves as my personal knowledge base and a collection of my own findings as I dive deep into system design concepts, architectures, and best practices. 
 
 ---
 
@@ -11,31 +11,23 @@ This repository serves as my personal knowledge base and a comprehensive resourc
 - [Introduction](#introduction)
 - [Topics Covered](#topics-covered)
 - [Projects](#projects)
-- [How to Use This Repo](#how-to-use-this-repo)
 - [Contributing / Feedback](#contributing--feedback)
 
 ---
 
 ## 📖 Introduction
 
-Understanding system design is crucial for software engineers, especially when building products that scale. This repository documents my notes, diagrams, and code snippets related to distributed systems, microservices, databases, caching, load balancing, and more. 
+Understanding system design is crucial for software engineers, especially when building products that scale. This repository documents my personal notes, diagrams, and late-night findings as I explore the vast landscape of distributed systems. Think of it as my engineering diary and study guide.
 
-As I progress through my learning journey, I will continue updating this repository with new topics and sample implementations.
+As I progress through my learning journey, I will continue updating this repository with new deep dives and sample implementations.
 
 ---
 
 ## 🏗 Topics Covered
 
-Here is a roadmap of topics I am exploring and documenting:
+Currently, I am deep-diving into the following topic:
 
-- **Fundamentals:** Networking, HTTP/REST, WebSockets, DNS.
-- **Scalability:** Horizontal vs. Vertical Scaling.
-- **Load Balancing:** Algorithms (Round Robin, Least Connections), Layer 4 vs Layer 7.
-- **Caching:** Distributed Caching (Redis, Memcached), CDNs, Eviction Policies (LRU, LFU).
-- **Databases:** Relational vs. NoSQL, Sharding, Replication, CAP Theorem, ACID vs. BASE.
-- **Message Queues & Event Streaming:** RabbitMQ, Kafka, Pub/Sub patterns.
-- **Microservices Architecture:** API Gateways, Service Discovery, Circuit Breakers.
-- **System Components:** Rate Limiting, Consistent Hashing.
+- **[Caching](Caching/README.md):** A deep dive into distributed caching (Redis/Memcached), architectural patterns, eviction policies, invalidation limits, and production failure modes.
 
 ---
 
@@ -44,13 +36,6 @@ Here is a roadmap of topics I am exploring and documenting:
 To tie these theoretical concepts back to actual implementation, I am building practical, real-world backend applications. You can explore the source code, architecture breakdowns, and concurrent designs for these systems here:
 
 - [Sample Backend Projects](https://github.com/mohdmusaiyab/backend)
-
----
-
-## 🛠 How to Use This Repo
-
-1. **Browse Topics:** Navigate to specific folders for detailed notes on individual topics.
-2. **Review Projects:** Check out the hands-on implementations in the sample backend projects link to see how design principles look in production code.
 
 ---
 
