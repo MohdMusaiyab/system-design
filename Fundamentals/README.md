@@ -6,7 +6,7 @@ Before designing scalable distributed systems, we must understand the fundamenta
 
 ## 📌 Topics
 
-*(Note: These files serve as scaffolding and will be expanded as I build out this module)*
-
-1. **[What is System Design?](01_What_Is_System_Design.md)**
-2. **[Client, Server & Network Physics](01_Network_And_Latency.md)**
+1. **[What is System Design?](01_What_Is_System_Design.md)** - Requirements, Scale, Availability, Reliability, Latency vs Throughput.
+2. **[Client-Server Fundamentals](02_Client_Server_Fundamentals.md)** - Roles, Request/Response, Stateless/Stateful, Three-Tier Architecture.
+3. **[The Physics of the Network (Latency & Protocols)](03_Network_And_Latency.md)** - TCP/UDP, DNS, Request Journeys, HTTP, & Bandwidth.
+4. **[The Trade-offs of State & Data (CAP Theorem)](04_State_And_CAP_Theorem.md)** - CAP Theorem, Consistency models, & Network Partitions.

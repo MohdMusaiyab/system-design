@@ -1,4 +1,4 @@
-# 1. The Physics of the Network (Latency & Protocols)
+# 3. The Physics of the Network (Latency & Protocols)
 
 Before designing distributed systems, we need to understand one fundamental constraint:
 
@@ -22,7 +22,7 @@ To answer these questions, we first need to understand the physics and protocols
 
 ---
 
-# 1.1 Latency Numbers Every Engineer Should Know
+# 3.1 Latency Numbers Every Engineer Should Know
 
 ## What is Latency?
 
@@ -114,7 +114,7 @@ This is one reason large systems deploy services, caches, databases, and CDNs ac
 
 ---
 
-# 1.2 Network Distance & Propagation Delay
+# 3.2 Network Distance & Propagation Delay
 
 There is a physical limit to how quickly information can travel.
 
@@ -179,7 +179,7 @@ This reduces latency.
 
 ---
 
-# 1.3 TCP vs UDP
+# 3.3 TCP vs UDP
 
 Applications need a way to communicate across networks.
 
@@ -295,7 +295,7 @@ We'll explore this more when discussing backend architecture and databases.
 
 ---
 
-# 1.4 UDP
+# 3.4 UDP
 
 UDP (**User Datagram Protocol**) is much simpler.
 
@@ -354,7 +354,7 @@ Instead:
 
 ---
 
-# 1.5 HTTP & HTTPS
+# 3.5 HTTP & HTTPS
 
 Most backend systems communicate using **HTTP**.
 
@@ -415,7 +415,7 @@ Content-Type: application/json
 
 ---
 
-# 1.6 HTTPS
+# 3.6 HTTPS
 
 HTTPS is essentially:
 
@@ -450,7 +450,7 @@ The important architectural understanding is:
 
 ---
 
-# 1.7 DNS Resolution
+# 3.7 DNS Resolution
 
 Humans prefer names:
 
@@ -502,7 +502,7 @@ DNS records have a **TTL (Time To Live)** that determines how long the response 
 
 ---
 
-# 1.8 DNS and Global Load Balancing
+# 3.8 DNS and Global Load Balancing
 
 DNS can also participate in directing users toward different infrastructure.
 
@@ -538,7 +538,7 @@ DNS and load balancing can work together.
 
 ---
 
-# 1.9 Bandwidth vs Throughput
+# 3.9 Bandwidth vs Throughput
 
 These two terms are often confused.
 
@@ -585,7 +585,7 @@ because of:
 
 ---
 
-# 1.10 Why Payload Size Matters
+# 3.10 Why Payload Size Matters
 
 Suppose an API returns:
 
@@ -624,7 +624,7 @@ This is one reason large systems often move large files away from application se
 
 ---
 
-# 1.11 Connection Reuse
+# 3.11 Connection Reuse
 
 Creating a network connection repeatedly can introduce unnecessary overhead.
 
@@ -675,7 +675,7 @@ Instead of repeatedly paying the cost of creating connections, the application c
 
 ---
 
-# 1.12 The Complete Journey of a Request
+# 3.12 The Complete Journey of a Request
 
 Now let's combine everything.
 
@@ -738,7 +738,7 @@ Every step can introduce latency.
 
 ---
 
-# 1.13 Why This Matters in System Design
+# 3.13 Why This Matters in System Design
 
 Suppose an API takes:
 
@@ -927,4 +927,4 @@ Can we avoid the trip entirely?
 
 That mindset is the beginning of System Design.
 
-⬅️ **[Previous: 1. What is System Design?](01_What_Is_System_Design.md)** | 🏠 **[Back to TOC](README.md)**
+⬅️ **[Previous: 2. Client-Server Fundamentals](02_Client_Server_Fundamentals.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 4. State & CAP Theorem ➡️](04_State_And_CAP_Theorem.md)**
