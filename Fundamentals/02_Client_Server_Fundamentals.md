@@ -268,6 +268,71 @@ For now, remember:
 
 ---
 
+## HTTP Methods & Idempotency
+
+When a client sends a request, it uses an **HTTP Method** (or "verb") to indicate the exact desired action.
+
+* `GET`: Retrieve data. (e.g., fetch a user profile).
+* `POST`: Create new data. (e.g., submit a new tweet).
+* `PUT`: Completely replace existing data or create it if it doesn't exist.
+* `PATCH`: Partially update existing data. (e.g., updating just the user's email address, leaving the rest of the profile alone).
+* `DELETE`: Remove data.
+
+### The Concept of Idempotency
+
+This is one of the most critical concepts in distributed systems.
+
+> **Idempotency means that making the very same request multiple times produces the exact same backend state as making it just once.**
+
+Imagine a network glitch occurs. The client sends a request, but the connection drops before the server can reply. The client isn't sure if the server received it, so it initiates an automatic **Retry**.
+
+Understanding idempotency dictates whether a retry is safe:
+
+* **`GET` is Idempotent:** Fetching a user profile 10 times doesn't change or break anything on the server.
+* **`PUT` is Idempotent:** Setting a user's age to `25` ten times just repeatedly sets the age at `25`.
+* **`DELETE` is Idempotent:** Deleting a file 10 times simply means the file is guaranteed to be deleted.
+* **`POST` is NOT Idempotent:** If you blindly retry an order payment POST request during a network timeout, the user might get charged twice for two uniquely created orders.
+
+Understanding which API operations are safe to retry is essential for building fault-tolerant systems.
+
+---
+
+## HTTP Status Codes
+
+When the server sends a response, it includes a **status code** that instantly tells the client what happened.
+
+These codes are standardized universally across the web.
+
+### 2xx — Success
+The request was successfully received and accepted.
+* `200 OK`: Standard success response.
+* `201 Created`: Success, and a new resource was created (e.g., creating a new order).
+* `204 No Content`: Success, but there is no data to return.
+
+### 3xx — Redirection
+The client must take additional action to complete the request.
+* `301 Moved Permanently`: The URL has changed permanently.
+* `302 Found / Redirect`: The resource is temporarily somewhere else.
+
+### 4xx — Client Error
+The request contains bad syntax or cannot be fulfilled. **(The client made a mistake)**.
+* `400 Bad Request`: The server cannot process the request (e.g., missing parameters, invalid JSON).
+* `401 Unauthorized`: Authentication is required and has failed or not been provided (e.g., missing API key).
+* `403 Forbidden`: The client is authenticated, but does *not* have permission to access the resource.
+* `404 Not Found`: The requested resource could not be found.
+* `429 Too Many Requests`: The client has sent too many requests in a given amount of time (Rate Limiting).
+
+### 5xx — Server Error
+The server failed to fulfill an apparently valid request. **(The server crashed or failed)**.
+* `500 Internal Server Error`: A generic error message (e.g., a bug in the application logic caused a crash).
+* `502 Bad Gateway`: A server acting as a gateway (like a Load Balancer) received an invalid response from an upstream application server.
+* `503 Service Unavailable`: The server is currently overloaded or down for maintenance.
+* `504 Gateway Timeout`: The server did not get a response in time from the upstream server.
+
+System architecture relies heavily on status codes to trigger retries, circuit breakers, and load balancer health checks.
+
+---
+
 # 2.7 The Server Does Not Have to Be One Machine
 
 This is extremely important for System Design.
