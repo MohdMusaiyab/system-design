@@ -12,49 +12,23 @@ It is time to bolt all of these disjointed theoretical concepts together into on
 
 If someone asks you perfectly how a modern, massively scaled Real-Time Chat or Trading application works, this is the architectural blueprint.
 
-```text
-                           ┌───────────────┐
-                           │    Clients    │
-                           │   (React / iOS)│
-                           └───────┬───────┘
-                                   │  (WebSocket / WSS)
-                                   ▼
-                           ┌───────────────┐
-                           │ Load Balancer │
-                           │ (NGINX / ALB) │
-                           └───────┬───────┘
-                                   │  (Persistent TCP)
-            ┌──────────────────────┼──────────────────────┐
-            ▼                      ▼                      ▼
-    ┌───────────────┐      ┌───────────────┐      ┌───────────────┐
-    │  WS Server 1  │      │  WS Server 2  │      │  WS Server 3  │
-    └───────┬───────┘      └───────┬───────┘      └───────┬───────┘
-            │                      │                      │
-            └──────────────┬───────┴───────┬──────────────┘
-                           │               │
-                     (Pub/Sub)        (Heartbeat updates)
-                           │               │
-                           ▼               ▼
-                   ┌────────────────────────────────┐
-                   │        Redis Cluster           │
-                   │  - Pub/Sub (The Backplane)     │
-                   │  - Presence (TTL Sets)         │
-                   └───────────────┬────────────────┘
-                                   │
-                     (Async Queue / API Fallback)
-                                   │
-                                   ▼
-                   ┌────────────────────────────────┐
-                   │    Core Backend Services       │
-                   │  - Authentication / APIs       │
-                   │  - Async Workers (Push Notifs) │
-                   └───────────────┬────────────────┘
-                                   │
-                                   ▼
-                   ┌────────────────────────────────┐
-                   │      Primary Database          │
-                   │  - PostgreSQL / Cassandra      │
-                   └────────────────────────────────┘
+```mermaid
+flowchart TD
+    Clients["📱 Clients<br>(React / iOS)"] -->|WebSocket / WSS| LB{"⚖️ Load Balancer<br>(NGINX / ALB)"}
+    
+    LB -->|Persistent TCP| WS1["⚙️ WS Server 1"]
+    LB -->|Persistent TCP| WS2["⚙️ WS Server 2"]
+    LB -->|Persistent TCP| WS3["⚙️ WS Server 3"]
+    
+    WS1 -.->|Pub/Sub broadcasts<br>TTL Heartbeats| Redis
+    WS2 -.->|Pub/Sub broadcasts<br>TTL Heartbeats| Redis
+    WS3 -.->|Pub/Sub broadcasts<br>TTL Heartbeats| Redis
+    
+    Redis[("🌐 Redis Cluster<br>- Pub/Sub (Backplane)<br>- Presence (TTL Sets)")] -->|Async Message Save<br>API Fallback Recovery| Backend
+    
+    Backend["🧠 Core Backend Services<br>- REST APIs<br>- Authentication<br>- Async Workers (Push Notifs)"] --> DB
+    
+    DB[("💾 Primary Database<br>(PostgreSQL / Cassandra)")]
 ```
 
 This is the exact layout utilized by applications ranging from Discord to Slack, to Robinhood, to modern collaborative SaaS.
@@ -136,19 +110,10 @@ Absolutely not.
 
 If you are a startup building a minimal viable product (MVP), you can condense this drastically.
 
-```text
-              Client
-                 │
-                 ▼
-         ┌───────────────┐
-         │ Node.js Server│
-         │ - WebSockets  │
-         │ - Presence    │
-         │ - REST API    │
-         └───────┬───────┘
-                 │
-                 ▼
-             Database
+```mermaid
+flowchart TD
+    Client["📱 Client"] --> JS["Node.js Server<br>- WebSockets<br>- Presence Map<br>- REST API"]
+    JS --> DB[("💾 Database")]
 ```
 
 That single monolith architecture will effortlessly support your first 5,000 - 10,000 real-time users. 

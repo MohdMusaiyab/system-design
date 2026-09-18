@@ -42,33 +42,22 @@ But if you are building an Uber clone, the user is visibly staring at a driver c
 
 When building a new app, run your requirements exclusively through this logic flow:
 
-```text
-Do we desperately need extremely fast, 100ms updates?
-        │
-    ┌───┴───┐
-    NO     YES
-    │       │
-    ▼       │
- SHORT      ▼
-POLLING     │
-            ▼
-    Are updates continuously flowing in BOTH directions?
-            │
-        ┌───┴───┐
-        NO     YES
-        │       │
-        ▼       │
-       SSE      ▼
-                │
-                ▼
-        Does it require heavy Audio / Video streams?
-                │
-            ┌───┴───┐
-            NO     YES
-            │       │
-            ▼       ▼
-        WEB-     WEBRTC
-       SOCKETS      
+```mermaid
+flowchart TD
+    Q1{"Do we desperately need<br>extremely fast,<br>100ms updates?"}
+    Q1 -- NO --> P["Short Polling"]
+    Q1 -- YES --> Q2{"Are updates continuously flowing<br>in BOTH directions?"}
+    
+    Q2 -- NO --> SSE["Server-Sent Events (SSE)"]
+    Q2 -- YES --> Q3{"Does it require heavy<br>Audio / Video streams?"}
+    
+    Q3 -- NO --> WS["WebSockets"]
+    Q3 -- YES --> RTC["WebRTC"]
+    
+    style P fill:#f9f,stroke:#333
+    style SSE fill:#bbf,stroke:#333
+    style WS fill:#bfb,stroke:#333
+    style RTC fill:#fbb,stroke:#333
 ```
 
 ---
@@ -81,9 +70,10 @@ Most engineers aggressively jump straight to WebSockets because WebSockets are "
 
 But if you look closely at standard notification feeds, social media timelines, and stock price tickers, they all flow linearly in a single direction: **Down to the client.**
 
-```text
-Server ──► Live Ticket Price ──► Client
-Server ──► New Notification ───► Client
+```mermaid
+flowchart LR
+    S1["Server"] -->|Live Ticket Price| C1["Client"]
+    S2["Server"] -->|New Notification| C2["Client"]
 ```
 
 If you use Server-Sent Events (SSE), you organically side-step massive complexity.

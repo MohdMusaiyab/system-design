@@ -24,16 +24,12 @@ The important thing to understand is:
 
 The simplest backend interaction looks like this:
 
-```text
-Client
-   │
-   │ Request
-   ▼
-Server
-   │
-   │ Response
-   ▼
-Client
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: Request
+    Server-->>Client: Response
 ```
 
 The client initiates the communication.
@@ -59,21 +55,24 @@ If another user sends a message after this response, the first client doesn't au
 
 The client has to ask again.
 
-```text
-Client ────── Request ──────► Server
-Client ◄───── Response ───── Server
-
-       ...new message happens...
-
-Client ────── Request ──────► Server
-Client ◄───── Response ───── Server
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: Request
+    Server-->>Client: Response
+    Note over Client,Server: ...new message happens...
+    Client->>Server: Request
+    Server-->>Client: Response
 ```
 
 A real-time system changes this relationship.
 
-```text
-Client ◄──────────────────── Server
-             Update
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Server->>Client: Update
 ```
 
 The server can now notify the client when something happens.
@@ -94,28 +93,15 @@ to User B.
 
 With a traditional request-response system:
 
-```text
-User B
-  │
-  │ "Any new messages?"
-  ▼
-Server
-  │
-  │ "No"
-  ▼
-User B
-
-  ...
-
-User B
-  │
-  │ "Any new messages?"
-  ▼
-Server
-  │
-  │ "Yes, here's Hey!"
-  ▼
-User B
+```mermaid
+sequenceDiagram
+    participant User B
+    participant Server
+    User B->>Server: "Any new messages?"
+    Server-->>User B: "No"
+    Note over User B,Server: ...
+    User B->>Server: "Any new messages?"
+    Server-->>User B: "Yes, here's Hey!"
 ```
 
 The server cannot spontaneously communicate with the client using the normal request-response pattern.
@@ -124,16 +110,13 @@ The client must initiate another request.
 
 A real-time connection allows:
 
-```text
-User A
-   │
-   │ "Hey!"
-   ▼
-Server
-   │
-   │ instantly push update
-   ▼
-User B
+```mermaid
+sequenceDiagram
+    participant User A
+    participant Server
+    participant User B
+    User A->>Server: "Hey!"
+    Server->>User B: instantly push update
 ```
 
 This is the fundamental problem that real-time communication solves.
@@ -200,23 +183,13 @@ A real-time system still has latency.
 
 For example:
 
-```text
-Event occurs
-     │
-     ▼
-Backend processes event
-     │
-     ▼
-Message sent
-     │
-     ▼
-Network
-     │
-     ▼
-Client receives message
-     │
-     ▼
-UI updates
+```mermaid
+flowchart TD
+    E["Event occurs"] --> B["Backend processes event"]
+    B --> M["Message sent"]
+    M --> N["Network"]
+    N --> C["Client receives message"]
+    C --> U["UI updates"]
 ```
 
 There may be milliseconds of delay at every step.
@@ -296,17 +269,11 @@ Several solutions evolved to address this.
 
 The common progression is:
 
-```text
-Short Polling
-      │
-      ▼
-Long Polling
-      │
-      ▼
-Server-Sent Events
-      │
-      ▼
-WebSockets
+```mermaid
+flowchart TD
+    SP["Short Polling"] --> LP["Long Polling"]
+    LP --> SSE["Server-Sent Events"]
+    SSE --> WS["WebSockets"]
 ```
 
 Each approach attempts to improve upon limitations of the previous approach.
@@ -327,21 +294,19 @@ The simplest solution is:
 
 For example:
 
-```text
-Every 5 seconds:
-
-Client ──── "Any updates?" ────► Server
-Client ◄──────── "No" ────────── Server
-
-5 seconds later...
-
-Client ──── "Any updates?" ────► Server
-Client ◄──────── "No" ────────── Server
-
-5 seconds later...
-
-Client ──── "Any updates?" ────► Server
-Client ◄────── "New message" ─── Server
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Note over Client,Server: Every 5 seconds:
+    Client->>Server: "Any updates?"
+    Server-->>Client: "No"
+    Note over Client,Server: 5 seconds later...
+    Client->>Server: "Any updates?"
+    Server-->>Client: "No"
+    Note over Client,Server: 5 seconds later...
+    Client->>Server: "Any updates?"
+    Server-->>Client: "New message"
 ```
 
 This is called **short polling**.
@@ -389,19 +354,17 @@ Most responses contain:
 
 So we're generating a lot of unnecessary traffic.
 
-```text
-Client
- │
- ├── Request → "Nothing?"
- ├── Request → "Nothing?"
- ├── Request → "Nothing?"
- ├── Request → "Nothing?"
- ├── Request → "Nothing?"
- ├── Request → "Nothing?"
- │
- │        ...
- │
- └── Request → "New message!"
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: Request
+    Server-->>Client: "Nothing?"
+    Client->>Server: Request
+    Server-->>Client: "Nothing?"
+    Note over Client,Server: (Repeats excessively...)
+    Client->>Server: Request
+    Server-->>Client: "New message!"
 ```
 
 This creates:
@@ -438,18 +401,14 @@ But an update may take almost 30 seconds to be discovered.
 
 Therefore:
 
-```text
-Shorter interval
-     ↓
-Lower detection delay
-     ↓
-More requests
-
-Longer interval
-     ↓
-Fewer requests
-     ↓
-Higher detection delay
+```mermaid
+flowchart TD
+    subgraph Short [Shorter Interval]
+    S1["Lower detection delay"] --> S2["More requests"]
+    end
+    subgraph Long [Longer Interval]
+    L1["Fewer requests"] --> L2["Higher detection delay"]
+    end
 ```
 
 This is one of the first important real-time trade-offs.
@@ -462,23 +421,23 @@ Long polling tries to improve short polling.
 
 Instead of immediately responding:
 
-```text
-Client ───► Server
-Client ◄─── "No updates"
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: Request
+    Server-->>Client: "No updates"
 ```
 
 the server keeps the request open.
 
-```text
-Client ───────── Request ─────────► Server
-                                    │
-                                    │ waiting...
-                                    │
-                                    │ waiting...
-                                    │
-                                    │ event occurs
-                                    ▼
-Client ◄──────── Response ───────── Server
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: Request
+    Note over Server: waiting...<br>event occurs
+    Server-->>Client: Response
 ```
 
 The server responds when:
@@ -488,21 +447,16 @@ The server responds when:
 
 After receiving the response, the client usually immediately creates another long-polling request.
 
-```text
-Client ─────────► Server
-                  │
-                  │ wait
-                  │
-                  │ event
-                  ▼
-Client ◄───────── Response
-
-Client ─────────► Server
-                  │
-                  │ wait
-                  │
-                  ▼
-                ...
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: Request (Long Poll)
+    Note over Server: wait...<br>event occurs
+    Server-->>Client: Response
+    
+    Client->>Server: Request (Long Poll)
+    Note over Server: wait...
 ```
 
 ---
@@ -511,28 +465,32 @@ Client ─────────► Server
 
 Short polling:
 
-```text
-Request
-Response
-Request
-Response
-Request
-Response
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+    Note over C,S: Short Polling
+    C->>S: Request
+    S-->>C: Response
+    C->>S: Request
+    S-->>C: Response
+    C->>S: Request
+    S-->>C: Response
 ```
 
 Long polling:
 
-```text
-Request
-    │
-    │──────── wait ────────│
-    │                      │
-    │                 event occurs
-    │                      │
-Response ◄─────────────────┘
-Request
-    │
-    │──────── wait ────────│
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+    Note over C,S: Long Polling
+    C->>S: Request
+    Note over S: wait...<br>event occurs
+    S-->>C: Response
+    
+    C->>S: Request
+    Note over S: wait...
 ```
 
 The server doesn't immediately respond when nothing has changed.
@@ -549,18 +507,16 @@ Long polling doesn't magically create a persistent bidirectional connection.
 
 It is still based on repeated HTTP requests.
 
-```text
-Request 1
-   ↓
-Wait
-   ↓
-Response
-   ↓
-Request 2
-   ↓
-Wait
-   ↓
-Response
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+    C->>S: Request 1
+    Note over S: Wait...
+    S-->>C: Response 1
+    C->>S: Request 2
+    Note over S: Wait...
+    S-->>C: Response 2
 ```
 
 Therefore, the client still needs to reconnect/reissue requests.
@@ -575,12 +531,15 @@ SSE takes another step.
 
 Instead of repeatedly creating requests, the client establishes a persistent HTTP connection.
 
-```text
-Client ──────── HTTP Request ────────► Server
-Client ◄──────── persistent stream ─── Server
-Client ◄──────── event ─────────────── Server
-Client ◄──────── event ─────────────── Server
-Client ◄──────── event ─────────────── Server
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+    C->>S: HTTP Request
+    S-->>C: persistent stream
+    S->>C: event
+    S->>C: event
+    S->>C: event
 ```
 
 The server can continuously send events through that connection.
@@ -601,22 +560,16 @@ Think of SSE as:
 
 For example:
 
-```text
-Browser
-   │
-   │ GET /events
-   ▼
-Server
-   │
-   │ connection remains open
-   │
-   ├──── event: notification
-   │
-   ├──── event: message
-   │
-   ├──── event: score-update
-   │
-   └──── event: notification
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant Server
+    Browser->>Server: GET /events
+    Note over Server: connection remains open
+    Server->>Browser: event: notification
+    Server->>Browser: event: message
+    Server->>Browser: event: score-update
+    Server->>Browser: event: notification
 ```
 
 The browser can use the `EventSource` API to receive these events.
@@ -644,18 +597,12 @@ Examples:
 
 For example:
 
-```text
-Server
-  │
-  ├── "Job started"
-  │
-  ├── "25% complete"
-  │
-  ├── "60% complete"
-  │
-  └── "Job completed"
-  ▼
-Client
+```mermaid
+flowchart TD
+    S["Server"] -->|"Job started"| C["Client"]
+    S -->|"25% complete"| C
+    S -->|"60% complete"| C
+    S -->|"Job completed"| C
 ```
 
 The client doesn't need to send messages back over the same connection.
@@ -668,32 +615,37 @@ WebSockets solve a different problem.
 
 They provide a persistent connection that supports:
 
-```text
-Client ─────────► Server
-Client ◄───────── Server
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: Message
+    Server->>Client: Message
 ```
 
 at any time.
 
 This is **bidirectional communication**.
 
-```text
-             Persistent Connection
-
-Client ◄────────────────────────────► Server
-       messages can travel both ways
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Note over Client,Server: Persistent Connection<br>(messages can travel both ways)
+    Client->>Server: Data
+    Server->>Client: Data
 ```
 
 Once the connection is established:
 
-```text
-Client ─── message ───► Server
-
-Server ─── event ─────► Client
-
-Client ─── typing ─────► Server
-
-Server ─── notification ► Client
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: message
+    Server->>Client: event
+    Client->>Server: typing
+    Server->>Client: notification
 ```
 
 Neither side needs to create a new HTTP request for every message.
@@ -704,26 +656,18 @@ Neither side needs to create a new HTTP request for every message.
 
 Think of a WebSocket connection as an open communication channel.
 
-```text
-Client
-  │
-  │ establish connection
-  ▼
-WebSocket Server
-  │
-  │ connection stays open
-  │
-  ├────────► message
-  │
-  ◄──────── event
-  │
-  ├────────► typing
-  │
-  ◄──────── notification
-  │
-  ├────────► acknowledgement
-  │
-  ◄──────── update
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: establish connection
+    Note over Server: connection stays open
+    Client->>Server: message
+    Server->>Client: event
+    Client->>Server: typing
+    Server->>Client: notification
+    Client->>Server: acknowledgement
+    Server->>Client: update
 ```
 
 This makes WebSockets particularly useful for applications requiring frequent two-way interaction.
@@ -747,13 +691,11 @@ WebRTC is designed primarily for **peer-to-peer communication** between clients.
 
 For example:
 
-```text
-          Signaling Server
-             /       \
-            /         \
-           ▼           ▼
-        Client A ◄───► Client B
-             WebRTC
+```mermaid
+flowchart TD
+    SS["Signaling Server"] --> C1["Client A"]
+    SS --> C2["Client B"]
+    C1 <-.->|WebRTC| C2
 ```
 
 It is commonly associated with:
@@ -765,14 +707,20 @@ It is commonly associated with:
 
 Unlike WebSockets, the main goal isn't simply:
 
-```text
-Browser ↔ Backend
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant Backend
+    Browser->>Backend: Data
 ```
 
 Instead, WebRTC can establish:
 
-```text
-Peer A ↔ Peer B
+```mermaid
+sequenceDiagram
+    participant Peer A
+    participant Peer B
+    Peer A->>Peer B: Direct Data
 ```
 
 with supporting infrastructure such as signaling, STUN, and sometimes TURN.

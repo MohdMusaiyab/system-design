@@ -1,358 +1,192 @@
-# Chapter 4 — WebSocket Fundamentals
+# Chapter 5 — WebSocket Protocol Deep Dive
 
-WebSockets provide a **persistent, bidirectional communication channel** between a client and a server.
+WebSockets are not just an API like `socket.send()`.
 
-Unlike SSE:
-
-```text
-SSE
-
-Server ─────────────────► Client
-```
-
-WebSockets allow:
-
-```text
-WebSocket
-
-Client ◄────────────────► Server
-```
-
-Both sides can send messages whenever they need to.
-
-This makes WebSockets useful for systems where the client and server need to communicate continuously.
-
-Examples:
-
-- Chat applications
-- Multiplayer games
-- Collaborative editing
-- Real-time trading interfaces
-- Live customer support
-- Real-time dashboards with client commands
-- Presence systems
-- Real-time notifications where bidirectional communication is useful
+Underneath, they follow a standardized protocol defined by **RFC 6455**. Understanding the protocol helps explain what actually happens between a browser and a WebSocket server.
 
 ---
 
-# 4.1 Why Do We Need WebSockets?
+## 1. WebSocket Starts as HTTP
 
-Consider a chat application.
+A WebSocket connection begins as a normal HTTP request.
 
-With polling:
-
-```text
-Client ── "Any new messages?" ──► Server
-Client ◄──────── "No" ─────────── Server
-
-Client ── "Any new messages?" ──► Server
-Client ◄──────── "No" ─────────── Server
-
-Client ── "Any new messages?" ──► Server
-Client ◄─────── "Yes!" ────────── Server
-```
-
-This is inefficient for continuous communication.
-
-With SSE:
-
-```text
-Server ─────────► Client
-```
-
-The server can push messages, but the client still needs another mechanism to send messages.
-
-With WebSockets:
-
-```text
-Client ─────────────► Server
-Client ◄───────────── Server
-Client ─────────────► Server
-Client ◄───────────── Server
-```
-
-Both sides can communicate over the same persistent connection.
-
----
-
-# 4.2 The Core Idea
-
-A normal HTTP interaction is generally:
-
-```text
-Request
-   │
-   ▼
-Server
-   │
-   ▼
-Response
-```
-
-WebSockets change the communication model.
-
-After establishing the connection:
-
-```text
-Client ◄────────────────────────► Server
-          persistent connection
-
-Client ── message ──────────────► Server
-Client ◄──────────── message ───── Server
-Client ── message ──────────────► Server
-Client ◄──────────── message ───── Server
-```
-
-There is no need for a new HTTP request for every WebSocket message.
-
----
-
-# 4.3 Full-Duplex Communication
-
-The technical term you'll hear frequently is:
-
-> **Full-duplex communication**
-
-It means both sides can send data independently.
-
-For example:
-
-```text
-Client ────────► Server
-       message
-
-Client ◄──────── Server
-       message
-```
-
-And these can happen independently:
-
-```text
-Client ───────────────► Server
-           │
-           │
-           │
-Server ───────────────► Client
-```
-
-The server does not have to wait for a client request before sending a message.
-
-Likewise, the client doesn't have to wait for the server to send something.
-
----
-
-# 4.4 WebSockets Still Start With HTTP
-
-This often causes confusion.
-
-A WebSocket connection begins with an HTTP request.
-
-The client essentially asks:
-
-> "Can we upgrade this HTTP connection to WebSocket?"
-
-Conceptually:
-
-```text
-Client
-   │
-   │ HTTP Upgrade Request
-   ▼
-Server
-   │
-   │ 101 Switching Protocols
-   ▼
-WebSocket connection
-```
-
-After the upgrade succeeds, communication switches to the WebSocket protocol.
-
----
-
-# 4.5 The Upgrade Handshake
-
-A simplified request looks like:
+The client asks the server to upgrade the connection:
 
 ```http
 GET /chat HTTP/1.1
 Host: example.com
 Upgrade: websocket
 Connection: Upgrade
-Sec-WebSocket-Key: <random-value>
+Sec-WebSocket-Key: x3JJHMbDL1EzLkh9GBhXDw==
 Sec-WebSocket-Version: 13
 ```
 
-The server responds with something like:
+The server accepts:
 
 ```http
 HTTP/1.1 101 Switching Protocols
 Upgrade: websocket
 Connection: Upgrade
-Sec-WebSocket-Accept: <value>
+Sec-WebSocket-Accept: ...
 ```
 
-The important part is:
+The important response is:
 
-```http
+```text
 101 Switching Protocols
 ```
 
-It means:
+After this, the connection is no longer normal HTTP request/response communication.
 
-> The server accepted the protocol switch.
-
-After this point, the connection is no longer being used as an ordinary HTTP request/response exchange.
-
----
-
-# 4.6 Why Use HTTP for the Handshake?
-
-HTTP is already understood by:
-
-- browsers
-- proxies
-- load balancers
-- firewalls
-- servers
-- infrastructure
-
-Using HTTP for connection establishment makes it easier for WebSockets to fit into the existing web ecosystem.
-
-But after the upgrade:
-
-```text
-HTTP
-  │
-  │ Upgrade
-  ▼
-WebSocket protocol
+```mermaid
+flowchart TD
+    H["HTTP"] -->|Upgrade| W["WebSocket"]
+    W -->|Persistent connection| M["Messages"]
 ```
 
 ---
 
-# 4.7 The WebSocket Connection Lifecycle
+# 2. `Sec-WebSocket-Key` and `Sec-WebSocket-Accept`
 
-A useful mental model is:
+These headers are part of the WebSocket handshake.
 
-```text
-             Client
-                │
-                │ HTTP Upgrade
-                ▼
-             Server
-                │
-                │ 101
-                ▼
-        WebSocket Connected
-                │
-        ┌───────┴────────┐
-        │                │
-        ▼                ▼
-     Messages         Messages
-        │                │
-        └───────┬────────┘
-                │
-                ▼
-             Closing
-                │
-                ▼
-            Closed
+The client sends:
+
+```http
+Sec-WebSocket-Key: random-value
 ```
 
-So a WebSocket has a lifecycle:
+The server calculates a corresponding value using:
 
-1. Connecting
-2. Handshake
-3. Open
-4. Message exchange
-5. Closing
-6. Closed
+```mermaid
+flowchart TD
+    K["Client Key"] --> S["+ WebSocket GUID"]
+    S --> SHA["SHA-1"]
+    SHA --> B["Base64"]
+    B --> A["Sec-WebSocket-Accept"]
+```
+
+This helps confirm that the server understands the WebSocket protocol.
+
+### Important
+
+This is **not authentication**.
+
+It does not prove who the user is.
+
+Authentication can still use:
+
+* Cookies
+* JWT
+* Sessions
+* OAuth
+* Other application-level mechanisms
 
 ---
 
-# 4.8 WebSocket Messages
+# 3. `ws://` vs `wss://`
 
-Once connected, the application can send messages.
-
-For example:
+Similar to HTTP and HTTPS:
 
 ```text
-Client → Server
-
-{
-  "type": "message",
-  "text": "Hello"
-}
+ws://   → WebSocket without TLS
+wss://  → WebSocket over TLS
 ```
 
-The server might respond:
+In production, you normally use:
 
 ```text
-Server → Client
-
-{
-  "type": "message",
-  "text": "Hello back"
-}
+wss://example.com/socket
 ```
 
-WebSocket itself doesn't force your application to use JSON.
-
-You can send:
-
-- Text
-- Binary data
-
-JSON is simply a common application-level format.
+`wss` encrypts the connection using TLS.
 
 ---
 
-# 4.9 WebSocket Is Not Your Application Protocol
+# 4. WebSocket Frames
 
-This distinction is important.
+After the handshake, WebSocket communicates using **frames**.
 
-WebSocket defines how communication happens.
-
-Your application defines what the messages mean.
-
-For example:
+A frame contains information such as:
 
 ```text
-WebSocket
-    │
-    ▼
-Application messages
-    │
-    ├── chat.message
-    ├── user.typing
-    ├── room.join
-    ├── room.leave
-    └── notification
+┌───────┬────────┬───────┬──────────────┐
+│ FIN   │ Opcode │ MASK  │ Payload Len  │
+├───────┴────────┴───────┴──────────────┤
+│ Masking Key (when present)            │
+├────────────────────────────────────────┤
+│ Payload                                │
+└────────────────────────────────────────┘
 ```
 
-WebSocket doesn't inherently understand:
-
-```text
-room.join
-```
-
-Your application does.
+You don't normally construct these frames yourself. Libraries handle them.
 
 ---
 
-# 4.10 Example: Chat
+# 5. Important Frame Fields
 
-Suppose Alice opens a chat.
+### FIN
+
+Indicates whether this is the final frame of a message.
 
 ```text
-Alice Browser
-      │
-      │ WebSocket
-      ▼
-   Server
+FIN = 1
 ```
 
-Alice sends:
+means the message is complete.
+
+If `FIN = 0`, more frames follow.
+
+---
+
+### Opcode
+
+Tells the receiver what kind of frame it is.
+
+Important opcodes:
+
+| Opcode | Meaning      |
+| ------ | ------------ |
+| `0x0`  | Continuation |
+| `0x1`  | Text         |
+| `0x2`  | Binary       |
+| `0x8`  | Close        |
+| `0x9`  | Ping         |
+| `0xA`  | Pong         |
+
+---
+
+# 6. Message vs Frame
+
+These are not necessarily the same thing.
+
+A small message might be:
+
+```mermaid
+flowchart TD
+    M["Message"] --> F["One frame"]
+```
+
+A large message can be fragmented:
+
+```mermaid
+flowchart TD
+    M["Message"] --> F1["Frame 1"]
+    M --> F2["Frame 2"]
+    M --> F3["Frame 3"]
+```
+
+The receiver combines the fragments into the original message.
+
+---
+
+# 7. Text and Binary Messages
+
+WebSocket supports both.
+
+### Text
+
+Usually UTF-8:
 
 ```json
 {
@@ -361,1021 +195,246 @@ Alice sends:
 }
 ```
 
-The server processes it and sends it to Bob:
+### Binary
 
-```text
-Alice
-  │
-  │ message
-  ▼
-Server
-  │
-  │ message
-  ▼
-Bob
-```
+Useful for things such as:
 
-The important part is that the server can send the message to Bob **without Bob having to poll for it**.
+* Images
+* Audio
+* Video
+* Binary protocols
+* Efficient serialized data
+
+WebSocket itself doesn't decide what your application data means.
 
 ---
 
-# 4.11 Example: Typing Indicators
+# 8. Masking
 
-Suppose Alice starts typing.
-
-Her browser sends:
-
-```json
-{
-  "type": "typing",
-  "userId": "alice"
-}
-```
-
-The server can immediately send:
-
-```text
-Server ─────────► Bob
-                  Alice is typing
-```
-
-When she stops:
-
-```json
-{
-  "type": "typing",
-  "userId": "alice",
-  "typing": false
-}
-```
-
-This is a good WebSocket use case because updates happen frequently in both directions.
-
----
-
-# 4.12 WebSocket vs SSE
-
-This is the comparison you should remember.
-
-| Feature               | SSE                    | WebSocket                   |
-| --------------------- | ---------------------- | --------------------------- |
-| Persistent connection | Yes                    | Yes                         |
-| Based around HTTP     | Yes                    | Starts with HTTP upgrade    |
-| Server → Client       | Yes                    | Yes                         |
-| Client → Server       | Separate HTTP requests | Same connection             |
-| Bidirectional         | No                     | Yes                         |
-| Browser API           | `EventSource`          | `WebSocket`                 |
-| Binary data           | Not its primary model  | Supported                   |
-| Automatic reconnect   | Basic browser support  | Usually application/library |
-| Complexity            | Lower                  | Higher                      |
-
-The fundamental distinction:
-
-```text
-SSE:
-
-Server ─────────► Client
-
-
-WebSocket:
-
-Server ◄────────► Client
-```
-
----
-
-# 4.13 When Should You Choose WebSockets?
-
-WebSockets are useful when communication is:
-
-### Frequent
-
-Messages may be exchanged continuously.
-
-### Bidirectional
-
-Both sides need to communicate.
-
-### Low-latency
-
-You don't want to repeatedly create HTTP requests.
-
-### Connection-oriented
-
-The application benefits from maintaining a live connection.
-
-Examples:
-
-```text
-Chat
-Multiplayer games
-Collaborative applications
-Real-time control interfaces
-Live trading interfaces
-Presence
-```
-
----
-
-# 4.14 When You Don't Need WebSockets
-
-Don't automatically choose WebSockets simply because something is called "real-time."
-
-For example:
-
-> "Show me when my background job finishes."
-
-You might only need:
-
-```text
-Server ─────► Client
-```
-
-SSE can be enough.
-
-Or perhaps polling is completely acceptable.
-
-The general principle is:
-
-> **Choose the simplest communication mechanism that satisfies the requirements.**
-
----
-
-# 4.15 WebSockets and HTTP APIs Can Coexist
-
-A real application doesn't have to choose one technology for everything.
-
-For example:
-
-```text
-                 Application
-                      │
-          ┌───────────┴───────────┐
-          │                       │
-       REST API               WebSocket
-          │                       │
-          ▼                       ▼
-   Normal operations       Real-time events
-```
-
-You might use HTTP for:
-
-```text
-POST /messages
-GET /profile
-GET /rooms
-```
-
-and WebSockets for:
-
-```text
-message received
-typing
-presence
-live updates
-```
-
-The two mechanisms can coexist.
-
----
-
-# 4.16 WebSockets Behind a Load Balancer
-
-A simple architecture might look like:
-
-```text
-                Client
-                   │
-                   ▼
-             Load Balancer
-              /          \
-             ▼            ▼
-       WebSocket A    WebSocket B
-```
-
-The important difference from normal short-lived HTTP requests is that a WebSocket connection stays attached to a server.
-
-For example:
-
-```text
-Client
-  │
-  │ connection
-  ▼
-Server A
-```
-
-That connection remains on Server A.
-
-The load balancer doesn't move the already-established connection to Server B for every message.
-
----
-
-# 4.17 Why Multiple WebSocket Servers Create a Problem
-
-Imagine:
-
-```text
-Client A ───► Server A
-
-Client B ───► Server B
-```
-
-Now Client A sends a message:
-
-```text
-Client A
-   │
-   │ "Hello"
-   ▼
-Server A
-```
-
-But Client B is connected to:
-
-```text
-Server B
-```
-
-How does Server A tell Server B?
-
-A simple architecture can use a shared Pub/Sub layer:
-
-```text
-Client A
-   │
-   ▼
-Server A
-   │
-   ▼
-Redis Pub/Sub
-   │
-   ▼
-Server B
-   │
-   ▼
-Client B
-```
-
-This is called a **backplane**.
-
-We'll study this architecture in detail later.
-
----
-
-# 4.18 Sticky Sessions
-
-Another concept you'll encounter is:
-
-> **Sticky sessions / session affinity**
-
-A load balancer can try to keep a client's connections associated with the same backend server.
+Client → Server WebSocket frames are normally **masked**.
 
 Conceptually:
 
-```text
-Client A ──► Server A
-Client A ──► Server A
-Client A ──► Server A
+```mermaid
+flowchart TD
+    O["Original Payload"] --> M["+ Masking Key"]
+    M --> MP["Masked Payload"]
 ```
 
-instead of:
+The server removes the mask to recover the original data.
 
-```text
-Client A ──► Server A
-Client A ──► Server B
-Client A ──► Server C
-```
+### Important
 
-For WebSockets, once the connection is established, the connection itself naturally remains on that server.
+Masking is **not encryption**.
 
-Sticky sessions can still matter for related connection/session behavior, but they don't solve the broader problem of distributing events between servers.
+It exists mainly for protocol/security reasons related to intermediaries.
 
-That's why a Pub/Sub backplane can still be necessary.
-
----
-
-# 4.19 WebSocket Connection State
-
-A WebSocket server needs to track connected clients.
-
-Conceptually:
-
-```text
-Server
- │
- ├── Connection A
- ├── Connection B
- ├── Connection C
- └── Connection D
-```
-
-Each connection may contain:
-
-- socket information
-- authentication information
-- room membership
-- connection state
-- buffers
-- subscriptions
-
-This consumes resources.
-
-Therefore, WebSocket scaling is not simply:
-
-> "How many HTTP requests can my server process?"
-
-You also need to ask:
-
-> "How many persistent connections can my server maintain?"
-
----
-
-# 4.20 Connection Memory
-
-Suppose a server maintains:
-
-```text
-100,000 connections
-```
-
-Even if each connection uses a relatively small amount of memory, the total can become significant.
-
-For example, conceptually:
-
-```text
-Connections
-     │
-     ▼
-Per-connection memory
-     │
-     ▼
-Total memory
-```
-
-And memory isn't the only limit.
-
-You also need to consider:
-
-- File descriptors
-- CPU
-- Network bandwidth
-- Kernel socket buffers
-- Application buffers
-- Message frequency
-
-Therefore, persistent connections need capacity planning.
-
----
-
-# 4.21 What Happens When a Server Dies?
-
-Suppose:
-
-```text
-Client
-  │
-  ▼
-Server A
-```
-
-Server A crashes.
-
-The connection disappears:
-
-```text
-Client
-  │
-  X
-Server A
-```
-
-The client must reconnect.
-
-A production WebSocket application therefore needs a reconnection strategy.
-
-A common flow is:
-
-```text
-Connected
-    │
-    │ failure
-    ▼
-Disconnected
-    │
-    ▼
-Reconnect
-    │
-    ▼
-Authenticate
-    │
-    ▼
-Restore subscriptions/state
-    │
-    ▼
-Connected
-```
-
-The exact strategy depends on the application.
-
----
-
-# 4.22 Reconnection Storms
-
-Imagine:
-
-```text
-WebSocket server crashes
-          │
-          ▼
-50,000 clients disconnect
-          │
-          ▼
-50,000 clients reconnect
-```
-
-If they all reconnect simultaneously:
-
-```text
-           Load
-             │
-             │       ███████████
-             │       ███████████
-             │       ███████████
-             │_______███████████________
-                     Time
-```
-
-The reconnect traffic itself can overload the system.
-
-This is called a **thundering herd / reconnect storm** problem.
-
-Later we'll discuss strategies such as:
-
-- exponential backoff
-- jitter
-- connection limits
-- graceful draining
-
----
-
-# 4.23 Heartbeats
-
-A WebSocket connection may appear alive even when the underlying network path has problems.
-
-WebSockets therefore support control messages such as:
-
-```text
-Ping
-Pong
-```
-
-Conceptually:
-
-```text
-Server ───── Ping ─────► Client
-Server ◄──── Pong ────── Client
-```
-
-This helps detect broken or unresponsive connections.
-
-The detailed frame-level mechanics will be covered in the WebSocket protocol deep dive.
-
-For now, remember:
-
-> **Heartbeats help determine whether a long-lived connection is still healthy.**
-
----
-
-# 4.24 Graceful Shutdown
-
-Suppose a WebSocket server is being deployed.
-
-You don't want to abruptly terminate thousands of connections.
-
-A better approach is:
-
-```text
-Stop accepting new connections
-          │
-          ▼
-Drain existing connections
-          │
-          ▼
-Clients reconnect elsewhere
-          │
-          ▼
-Shutdown
-```
-
-This becomes particularly important in rolling deployments.
-
----
-
-# 4.25 WebSocket Does Not Guarantee Reliable Delivery
-
-A very important misconception:
-
-> WebSocket being connection-oriented does not mean your application automatically has durable message delivery.
-
-Suppose:
-
-```text
-Server ─── message ───► Client
-```
-
-and immediately afterward the connection breaks.
-
-What happens if the client never processed the message?
-
-WebSocket itself does not provide a durable message history like a message broker.
-
-If your application needs recovery, you may need:
-
-```text
-WebSocket
-    +
-Message IDs
-    +
-Persistent storage / message system
-```
-
-For example:
-
-```text
-Client reconnects
-       │
-       ▼
-"Last message I received = 104"
-       │
-       ▼
-Server
-       │
-       ▼
-Send missing messages
-```
-
-This is an **application-level reliability mechanism**.
-
----
-
-# 4.26 Ordering
-
-Messages sent over one WebSocket connection are delivered according to the WebSocket/TCP transport ordering characteristics.
-
-But distributed applications introduce additional complexity.
-
-For example:
-
-```text
-Client A
-   │
-   ▼
-Server A ──► Pub/Sub ──► Server B
-```
-
-Now your application may have:
-
-- multiple producers
-- multiple servers
-- multiple channels
-- reconnects
-
-Therefore, "WebSocket preserves ordering" should not be interpreted as:
-
-> "My entire distributed system automatically has global ordering."
-
-Transport ordering and application-level ordering are different concerns.
-
----
-
-# 4.27 WebSocket Security
-
-WebSockets should also be secured.
-
-For browser applications, production connections generally use:
+Encryption comes from:
 
 ```text
 wss://
 ```
 
-instead of:
-
-```text
-ws://
-```
-
-Conceptually:
-
-```text
-ws://
-  │
-  └── WebSocket without TLS
-
-
-wss://
-  │
-  └── WebSocket over TLS
-```
-
-You also need to consider:
-
-- Authentication
-- Authorization
-- Origin validation
-- Input validation
-- Rate limiting
-- Connection limits
-
-A WebSocket connection can stay open for a long time, so authentication and authorization decisions need to be handled carefully.
-
 ---
 
-# 4.28 WebSockets and Rooms
+# 9. Ping and Pong
 
-Many applications need logical groups.
+WebSocket has built-in control frames:
+
+```mermaid
+sequenceDiagram
+    participant Server
+    participant Client
+    Server->>Client: Ping
+    Client->>Server: Pong
+```
+
+These help detect dead connections.
 
 For example:
 
-```text
-Room: cricket-match-123
+```mermaid
+flowchart TD
+    CE["Connection exists"] --> P["Ping"]
+    P --> NP["No Pong"]
+    NP --> CMD["Connection may be dead"]
+    CMD --> CC["Close connection"]
 ```
 
-Clients can join:
-
-```text
-Client A ──┐
-Client B ──┼──► Room 123
-Client C ──┘
-```
-
-When an event occurs:
-
-```text
-Server
-   │
-   ▼
-Room 123
-   │
-   ├──► Client A
-   ├──► Client B
-   └──► Client C
-```
-
-Rooms are not part of the core WebSocket protocol.
-
-They're an **application/library-level abstraction**.
-
-This distinction becomes important when comparing libraries such as Socket.IO with lower-level WebSocket implementations.
+This is especially important because TCP may not immediately tell your application that a disconnected client is gone.
 
 ---
 
-# 4.29 Raw WebSocket vs Higher-Level Libraries
+# 10. Close Frames
 
-At the protocol level, you can work directly with WebSockets.
+A WebSocket connection can close gracefully.
 
-For example, in Node.js, a common library is:
-
-```text
-ws
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: Close
+    Server->>Client: Close
 ```
 
-It gives relatively direct access to WebSocket behavior.
+A close frame can contain a status code explaining why the connection is closing.
 
-Higher-level libraries such as:
+Examples include:
 
 ```text
-Socket.IO
+1000 → Normal closure
+1001 → Going away
+1008 → Policy violation
+1011 → Server error
 ```
 
-provide additional abstractions such as:
-
-- rooms
-- namespaces
-- reconnection
-- event-oriented APIs
-- additional connection behavior
-
-The trade-off is that you're no longer working with only the basic WebSocket protocol.
-
-We'll compare these libraries later.
+If the connection suddenly disappears without a proper close handshake, the application may treat it as an unexpected disconnect.
 
 ---
 
-# 4.30 WebSocket vs Socket.IO
+# 11. WebSocket Does Not Define Your Application Protocol
 
-Do not think:
+This is extremely important.
 
-```text
-WebSocket = Socket.IO
+WebSocket defines **how data travels**.
+
+It does not define what your messages mean.
+
+You might create an application protocol like:
+
+```json
+{
+  "type": "chat.message",
+  "messageId": "123",
+  "payload": {
+    "text": "Hello"
+  }
+}
 ```
 
-They are different.
+Or:
 
-### WebSocket
-
-A protocol/standard communication mechanism.
-
-### Socket.IO
-
-A higher-level real-time framework/library with its own protocol and features.
-
-Conceptually:
-
-```text
-Application
-     │
-     ▼
-Socket.IO
-     │
-     ▼
-Transport layer
+```json
+{
+  "type": "typing.start",
+  "userId": "42"
+}
 ```
 
-Socket.IO may use WebSocket when available, but it is not simply "WebSocket with a nicer API."
+Your application decides these rules.
 
-We'll cover the distinction properly in the library chapter.
+So:
 
----
-
-# 4.31 A Basic WebSocket Architecture
-
-A small application:
-
-```text
-┌──────────────┐
-│    Client    │
-└──────┬───────┘
-       │
-       │ WebSocket
-       ▼
-┌──────────────┐
-│ WebSocket    │
-│ Server       │
-└──────┬───────┘
-       │
-       ├──────────────► Database
-       │
-       └──────────────► Application Logic
-```
-
-For example, a chat message:
-
-```text
-Client
-  │
-  │ send message
-  ▼
-WebSocket Server
-  │
-  ├── validate
-  ├── authenticate
-  ├── persist
-  └── broadcast
+```mermaid
+flowchart TD
+    WP["WebSocket Protocol"] -->|Transports messages| AP["Your Application Protocol"]
+    AP --> MM["Defines message meaning"]
 ```
 
 ---
 
-# 4.32 A Scaled WebSocket Architecture
+# 12. WebSocket + HTTP
 
-When we have multiple servers:
+WebSockets don't replace HTTP.
 
-```text
-                         Clients
-                      /     |     \
-                     /      |      \
-                    ▼       ▼       ▼
-              ┌─────────────────────────┐
-              │      Load Balancer      │
-              └────────────┬────────────┘
-                           │
-                ┌──────────┼──────────┐
-                ▼          ▼          ▼
-             WS Server  WS Server  WS Server
-                │          │          │
-                └──────────┼──────────┘
-                           ▼
-                      Pub/Sub
-                           │
-                           ▼
-                       Database
+A typical application can use both:
+
+```mermaid
+flowchart LR
+    H["HTTP"] --> HL["Login"]
+    H --> HF["Fetch messages"]
+    H --> HU["Upload files"]
+    H --> HR["REST/API requests"]
+    
+    W["WebSocket"] --> WN["New message"]
+    W --> WT["Typing indicator"]
+    W --> WL["Live notifications"]
+    W --> WP["Presence updates"]
 ```
 
-The Pub/Sub layer allows servers to exchange events.
+HTTP is still useful for request/response operations.
 
-For example:
-
-```text
-Client A
-   │
-   ▼
-WS Server 1
-   │
-   ▼
-Pub/Sub
-   │
-   ├────► WS Server 2 ───► Client B
-   │
-   └────► WS Server 3 ───► Client C
-```
-
-This is a foundational architecture pattern for large real-time systems.
+WebSocket is useful when the server needs to continuously push events.
 
 ---
 
-# 4.33 The Most Important Scaling Insight
+# 13. Protocol vs Library
 
-With ordinary HTTP:
+This distinction matters.
 
-```text
-Request
-   │
-   ▼
-Server
-   │
-   ▼
-Response
+**WebSocket protocol** defines things like:
+
+* Handshake
+* Frames
+* Opcodes
+* Masking
+* Ping/Pong
+* Closing
+
+Libraries such as `ws`, `gorilla/websocket`, etc. implement these details for you.
+
+You normally write:
+
+```mermaid
+flowchart TD
+    AC["Application Code"] --> WL["WebSocket Library"]
+    WL --> W["WebSocket Protocol"]
+    W --> T["TCP"]
+    T --> N["Network"]
 ```
 
-The request is short-lived.
-
-With WebSockets:
-
-```text
-Connection
-   │
-   ├── message
-   ├── message
-   ├── message
-   ├── message
-   └── ...
-```
-
-The server must maintain the connection for potentially a long time.
-
-Therefore:
-
-> **WebSocket scaling is heavily influenced by concurrent connections, not just requests per second.**
-
-You still care about message throughput, but concurrent connection count becomes a major capacity dimension.
+You don't manually construct frames in normal application development.
 
 ---
 
-# 4.34 What WebSocket Solves
+# 14. Complete Mental Model
 
-WebSockets solve a specific communication problem:
+When a browser connects:
 
-> **How can a client and server maintain a persistent, low-latency, bidirectional communication channel?**
+```mermaid
+flowchart TD
+    S1["1. HTTP Request"] --> S2["2. Upgrade: websocket"]
+    S2 --> S3["3. Server returns 101"]
+    S3 --> S4["4. WebSocket connection established"]
+    S4 --> S5["5. Data exchanged as frames"]
+    S5 --> S6["6. Ping/Pong keeps connection healthy"]
+    S6 --> S7["7. Close frame ends connection"]
+```
 
-The answer:
+The important layers are:
 
-```text
-HTTP Upgrade
-      │
-      ▼
-WebSocket connection
-      │
-      ▼
-Bidirectional messages
+```mermaid
+flowchart TD
+    M["Application Message"] --> W["WebSocket Frame"]
+    W --> P["WebSocket Protocol"]
+    P --> T["TCP"]
+    T --> I["IP / Network"]
 ```
 
 ---
 
-# 4.35 What WebSocket Does NOT Solve
+# Key Takeaways
 
-WebSocket does not automatically solve:
+* WebSocket begins with an **HTTP Upgrade handshake**.
+* `101 Switching Protocols` establishes the WebSocket connection.
+* After the handshake, communication uses **WebSocket frames**.
+* Frames have fields such as **FIN, opcode, masking and payload length**.
+* WebSocket supports **text and binary messages**.
+* Client-to-server frames are normally **masked**.
+* Ping/Pong helps detect unhealthy connections.
+* Close frames provide graceful connection termination.
+* `wss://` provides TLS encryption.
+* WebSocket defines transport mechanics, **not your application's message format**.
+* WebSocket and HTTP commonly coexist in the same application.
 
-- Distributed fan-out
-- Message durability
-- Offline clients
-- Message replay
-- Global ordering
-- Authentication
-- Authorization
-- Scaling across many servers
-- Backpressure
-- Reconnect storms
+### One-line mental model
 
-These are **system-design problems around the WebSocket connection**.
-
-This distinction is critical.
-
----
-
-# 4.36 Final Mental Model
-
-Remember WebSockets as:
-
-```text
-                    HTTP
-                     │
-                     │ Upgrade
-                     ▼
-              WebSocket Connection
-                     │
-                     ▼
-          ┌──────────────────────┐
-          │   Persistent Channel │
-          └──────────────────────┘
-               ▲            │
-               │            │
-               │            │
-          Client           Server
-               │            │
-               └────────────┘
-                 bidirectional
-```
-
-Or simply:
-
-```text
-SSE:
-
-Server ─────────────────► Client
-
-
-WebSocket:
-
-Client ◄────────────────► Server
-```
-
-And at system level:
-
-```text
-                    Load Balancer
-                         │
-              ┌──────────┼──────────┐
-              ▼          ▼          ▼
-            WS 1       WS 2       WS 3
-              │          │          │
-              └──────────┼──────────┘
-                         ▼
-                      Pub/Sub
-                         │
-                         ▼
-                      Database
-```
-
-The WebSocket itself is only the **communication channel**.
-
-The rest of the architecture exists to make that channel useful, scalable, reliable, and secure.
+> **HTTP establishes the connection; WebSocket frames carry messages; your application protocol gives those messages meaning.**
 
 ---
 
-# 4.37 Key Takeaways
+⬅️ **[Back: WebSocket Fundamentals](04_WebSockets_Fundamentals.md)**
 
-1. **WebSocket provides persistent bidirectional communication.**
-
-```text
-Client ◄────────► Server
-```
-
-2. A WebSocket connection **starts with an HTTP Upgrade handshake**.
-
-3. `101 Switching Protocols` indicates that the upgrade was accepted.
-
-4. After the handshake, communication uses the **WebSocket protocol**, not ordinary HTTP request/response semantics.
-
-5. WebSockets are useful when both client and server need frequent, low-latency communication.
-
-6. WebSockets are not automatically better than SSE or polling.
-
-7. A WebSocket connection consumes server resources for as long as it remains open.
-
-8. Multiple WebSocket servers often need a **shared Pub/Sub backplane** for cross-server event distribution.
-
-9. Reconnection, heartbeats, graceful shutdown, backpressure, reliability, and message recovery are separate system-design concerns.
-
-10. **WebSocket is the transport/channel—not the complete real-time architecture.**
-
----
-
-# 4.38 What's Next?
-
-Now that we understand what WebSockets are and why they exist, the next chapter goes **one level deeper into the actual protocol**.
-
-We'll study:
-
-- RFC 6455
-- HTTP Upgrade handshake
-- `Sec-WebSocket-Key`
-- `Sec-WebSocket-Accept`
-- WebSocket frames
-- Frame structure
-- Opcodes
-- Text vs binary frames
-- Masking
-- Ping/Pong
-- Close frames
-- Fragmentation
-- Message boundaries
-
-That chapter is where we stop treating WebSocket as a black box and understand **what is actually travelling over the network**.
-
----
-
-⬅️ **[Back: Server-Sent Events (SSE)](03_Server_Sent_Events.md)**
-
-➡️ **[Next: WebSocket Protocol Deep Dive](05_WebSocket_Protocol.md)**
+➡️ **[Next: WebSocket Libraries](06_WebSocket_Libraries.md)**
 
 ⬆️ **[Back to Real-Time Backend](README.md)**

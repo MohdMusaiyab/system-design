@@ -16,19 +16,23 @@ This feature is broadly known as a **Presence System**.
 
 In a single-server application, building a presence system is extraordinarily simple.
 
-```text
-Server Memory:
-Alice: ONLINE
-Bob: OFFLINE
-Charlie: ONLINE
+```mermaid
+flowchart TD
+    Memory["Server Memory"]
+    Memory --- A["Alice: ONLINE"]
+    Memory --- B["Bob: OFFLINE"]
+    Memory --- C["Charlie: ONLINE"]
 ```
 
 When Alice connects her WebSocket, you mark her `ONLINE` in a local hash map. When her socket disconnects, you mark her `OFFLINE`. 
 
 But in a distributed system, Alice connects to Server 1, and Bob connects to Server 2.
 
-```text
-Server 1 (Alice: ONLINE)      Server 2 (Bob: ONLINE)
+```mermaid
+flowchart LR
+    S1["Server 1<br>(Alice: ONLINE)"]
+    S2["Server 2<br>(Bob: ONLINE)"]
+    S1 -.->|Invisible Wall| S2
 ```
 
 Server 1 has absolutely no idea that Bob is online. 
@@ -84,8 +88,11 @@ Remember the TCP "Half-Open" connection trap from Chapter 9?
 
 What happens if the Server providing Alice's WebSocket connection violently crashes?
 
-```text
-Alice ──► Server 1 (Crashes!)
+```mermaid
+flowchart LR
+    Alice -->|WebSocket| S1["Server 1"]
+    style S1 fill:#f9cfcf,stroke:#ff0000,stroke-width:2px
+    S1 -.->|Crash! Never tells Redis| Redis[(Redis)]
 ```
 
 Server 1 never gets the chance to run its "Disconnect" cleanly. It never tells Redis that Alice went offline.
@@ -120,18 +127,24 @@ Every 30 seconds, Server 1 successfully exchanges a Ping/Pong with Alice's brows
 
 Every time that Ping succeeds, Server 1 tells Redis to extend her TTL back up to 45 seconds.
 
-```text
-Time = 0s: Alice connects. (Redis TTL set to 45s)
-Time = 30s: Heartbeat OK! (Server resets TTL to 45s)
-Time = 60s: Heartbeat OK! (Server resets TTL to 45s)
+```mermaid
+sequenceDiagram
+    participant Time
+    participant Action
+    Time->>Action: 0s: Alice connects (Redis TTL set to 45s)
+    Time->>Action: 30s: Heartbeat OK! (Server resets TTL to 45s)
+    Time->>Action: 60s: Heartbeat OK! (Server resets TTL to 45s)
 ```
 
 Now, what happens if Server 1 crashes violently at `Time = 65s`?
 
-```text
-Time = 65s: Server 1 crashes! 
-Time = 95s: No heartbeat arrived to refresh the TTL.
-Time = 105s: Redis naturally expires and deletes the key.
+```mermaid
+sequenceDiagram
+    participant Time
+    participant State
+    Time->>State: 65s: Server 1 crashes!
+    Time->>State: 95s: No heartbeat arrived to refresh the TTL.
+    Time->>State: 105s: Redis naturally expires and deletes the key.
 ```
 
 Alice gracefully drops offline automatically. The Ghost State is impossible!
@@ -171,18 +184,16 @@ We must pivot to tracking **Distinct Devices/Sessions**.
 
 In Redis, instead of a simple string `SET`, we use a Hash (`HSET`) or a Set (`SADD`) to track the unique connection identifiers tied to Alice.
 
-```text
-Redis Set representing Alice's Active Sockets:
-
-user:alice:connections = { 
-   "laptop_socket_482", 
-   "phone_socket_912" 
-}
+```mermaid
+flowchart LR
+    Set[{"Redis Set: user:alice:connections"}]
+    Set --- L["laptop_socket_482"]
+    Set --- P["phone_socket_912"]
 ```
 
 When her phone disconnects, we only remove the phone's socket ID from her presence set.
 
-```text
+```bash
 SREM user:alice:connections "phone_socket_912"
 ```
 
@@ -197,29 +208,19 @@ It is only when her set mathematically reaches exactly `0` elements that the sys
 
 Designing an enterprise-grade Presence layer is surprisingly complex, but relies on a beautiful synthesis of techniques we've already learned.
 
-```text
-TCP Socket Exists
-      │
-      ▼
-Server issues Pings (Heartbeats)
-      │
-      ▼
-Client answers with Pongs
-      │
-      ▼
-Server refreshes 45s TTL in central Redis
-      │
-      ▼
-Device Set > 0 = User is globally ONLINE
-      │
-      ▼
-All devices disconnect (or server crashes & TTL expires)
-      │
-      ▼
-Device Set = 0 = User is globally OFFLINE
-      │
-      ▼
-Update "Last Seen" in PostgreSQL
+```mermaid
+flowchart TD
+    A["TCP Socket Exists"] --> B["Server issues Pings (Heartbeats)"]
+    B --> C["Client answers with Pongs"]
+    C --> D["Server refreshes 45s TTL in central Redis"]
+    D --> E{"Device Set > 0?"}
+    
+    E -- Yes --> F["User is globally ONLINE"]
+    
+    E -- No --> G["All devices disconnect<br>(or server crashes & TTL expires)"]
+    G --> H["Device Set = 0"]
+    H --> I["User is globally OFFLINE"]
+    I --> J[("Update 'Last Seen' in PostgreSQL")]
 ```
 
 This architecture brilliantly prevents ghost states and race conditions while seamlessly handling users with multiple simultaneous devices.

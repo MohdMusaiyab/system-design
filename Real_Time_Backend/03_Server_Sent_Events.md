@@ -8,8 +8,11 @@ The key idea is simple:
 
 This makes SSE useful for applications where communication primarily flows in one direction:
 
-```text
-Server ───────────────────► Client
+```mermaid
+sequenceDiagram
+    participant Server
+    participant Client
+    Server->>Client: One-way Event Stream
 ```
 
 Examples include:
@@ -34,14 +37,15 @@ We saw two approaches in the previous chapter.
 
 ### Short Polling
 
-```text
-Client ── Request ──► Server
-Client ◄─ Response ── Server
-
-        wait
-
-Client ── Request ──► Server
-Client ◄─ Response ── Server
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: Request
+    Server-->>Client: Response
+    Note over Client,Server: wait
+    Client->>Server: Request
+    Server-->>Client: Response
 ```
 
 The client repeatedly asks:
@@ -52,16 +56,14 @@ The client repeatedly asks:
 
 ### Long Polling
 
-```text
-Client ── Request ─────────► Server
-                            │
-                            │ wait...
-                            │
-                            │ event
-                            ▼
-Client ◄──── Response ────── Server
-
-Client ── Request ─────────► Server
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: Request
+    Note over Server: wait...<br>event happens
+    Server-->>Client: Response
+    Client->>Server: Request
 ```
 
 This is better because the server can wait for an event.
@@ -70,19 +72,17 @@ But the client still has to repeatedly create requests.
 
 SSE takes another step:
 
-```text
-Client ── Request ───────────────► Server
-                                  │
-                                  │ connection stays open
-                                  │
-Client ◄──── Event 1 ─────────────┤
-Client ◄──── Event 2 ─────────────┤
-Client ◄──── Event 3 ─────────────┤
-Client ◄──── Event 4 ─────────────┤
-                                  │
-                                  │
-                              connection
-                                 closes
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: Request
+    Note over Server: connection stays open
+    Server->>Client: Event 1
+    Server->>Client: Event 2
+    Server->>Client: Event 3
+    Server->>Client: Event 4
+    Note over Client,Server: connection closes
 ```
 
 One request can support **many server-to-client events**.
@@ -99,12 +99,12 @@ It is a web technology built on top of HTTP that allows a server to send a strea
 
 The communication model is:
 
-```text
-Client ───────────────► Server
-       initial request
-
-Server ───────────────► Client
-       event stream
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: initial request
+    Server->>Client: event stream
 ```
 
 The important characteristic is:
@@ -115,19 +115,17 @@ The client can still make normal HTTP requests separately.
 
 For example:
 
-```text
-                 HTTP API
-Client ─────────────────────────► Server
-Client ◄───────────────────────── Server
-
-
-                 SSE
-Client ─────────────────────────► Server
-       connection establishment
-
-Client ◄───────────────────────── Server
-Client ◄───────────────────────── Server
-Client ◄───────────────────────── Server
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Note over Client,Server: HTTP API
+    Client->>Server: Request
+    Server-->>Client: Response
+    Note over Client,Server: SSE
+    Client->>Server: connection establishment
+    Server->>Client: event stream...
+    Server->>Client: event stream...
 ```
 
 ---
@@ -167,22 +165,12 @@ The server can continue writing events into it.
 
 Think of an SSE connection as a pipe.
 
-```text
-                 SSE Connection
-
-Server
-  │
-  │ event
-  ▼
-══════════════════════════════════════► Client
-  │
-  │ event
-  ▼
-══════════════════════════════════════► Client
-  │
-  │ event
-  ▼
-══════════════════════════════════════► Client
+```mermaid
+flowchart LR
+    S["Server"] -->|Event 1| P["🔥 SSE Connection Pipe 🔥"]
+    S -->|Event 2| P
+    S -->|Event 3| P
+    P --> C["Client"]
 ```
 
 The pipe remains open.
@@ -195,20 +183,10 @@ The server doesn't create a new HTTP request for every event.
 
 A simple system looks like:
 
-```text
-┌──────────────┐
-│   Browser    │
-└──────┬───────┘
-       │
-       │ HTTP connection
-       │
-       ▼
-┌──────────────┐
-│    Server    │
-└──────┬───────┘
-       │
-       ▼
-   Event Source
+```mermaid
+flowchart TD
+    B["Browser"] -->|HTTP connection| S["Server"]
+    S --> ES["Event Source"]
 ```
 
 The event source could be:
@@ -222,20 +200,12 @@ The event source could be:
 
 For example:
 
-```text
-User action
-    │
-    ▼
-Application
-    │
-    ▼
-Event
-    │
-    ▼
-SSE connection
-    │
-    ▼
-Browser
+```mermaid
+flowchart TD
+    U["User action"] --> A["Application"]
+    A --> E["Event"]
+    E --> S["SSE connection"]
+    S --> B["Browser"]
 ```
 
 ---
@@ -389,22 +359,12 @@ The browser:
 
 Conceptually:
 
-```text
-Browser
-   │
-   │ new EventSource()
-   ▼
-GET /events
-   │
-   ▼
-Server
-   │
-   │ persistent stream
-   ▼
-EventSource
-   │
-   ▼
-JavaScript handler
+```mermaid
+flowchart TD
+    B["Browser"] -->|new EventSource| GET["GET /events"]
+    GET --> S["Server"]
+    S -->|persistent stream| ES["EventSource API"]
+    ES --> JH["JavaScript handler"]
 ```
 
 ---
@@ -424,16 +384,13 @@ Wait
 
 With `EventSource`:
 
-```text
-EventSource
-     │
-     ▼
-Persistent connection
-     │
-     ├── event
-     ├── event
-     ├── event
-     └── event
+```mermaid
+flowchart TD
+    ES["EventSource"] --> PC["Persistent connection"]
+    PC --> E1["event"]
+    PC --> E2["event"]
+    PC --> E3["event"]
+    PC --> E4["event"]
 ```
 
 The browser handles much of the connection management for you.
@@ -575,12 +532,10 @@ The client receives:
 
 Then the network breaks.
 
-```text
-Client
-   │
-   │ received 101, 102
-   X
-connection lost
+```mermaid
+flowchart TD
+    C["Client"] -.->|received 101, 102<br>connection lost| X["Network"]
+    style X fill:#f9cfcf,stroke:#ff0000
 ```
 
 What about:
@@ -649,22 +604,12 @@ One of the nice features of browser `EventSource` is automatic reconnection.
 
 Conceptually:
 
-```text
-Connected
-    │
-    ▼
-Receiving events
-    │
-    │ network failure
-    ▼
-Disconnected
-    │
-    │ browser retries
-    ▼
-Connecting
-    │
-    ▼
-Connected
+```mermaid
+stateDiagram-v2
+    Connected --> Receiving_events
+    Receiving_events --> Disconnected: network failure
+    Disconnected --> Connecting: browser retries
+    Connecting --> Connected
 ```
 
 The browser handles the basic retry behavior.
@@ -699,19 +644,13 @@ Means:
 
 For example:
 
-```text
-Connection:
-       101
-       102
-       X
-       disconnected
-       │
-       ▼
-reconnect
-       │
-       ▼
-       103
-       104
+```mermaid
+flowchart TD
+    C["Connection"] --> E1["101"]
+    E1 --> E2["102"]
+    E2 -.->|disconnected| R["reconnect"]
+    R --> E3["103"]
+    E3 --> E4["104"]
 ```
 
 Reconnection alone only gives you a new connection.
@@ -739,16 +678,15 @@ These can be used to keep the connection active.
 
 Conceptually:
 
-```text
-Server ───── event ─────► Client
-
-          silence
-
-Server ─── heartbeat ────► Client
-
-          silence
-
-Server ───── event ─────► Client
+```mermaid
+sequenceDiagram
+    participant Server
+    participant Client
+    Server->>Client: event
+    Note over Server,Client: silence
+    Server->>Client: heartbeat
+    Note over Server,Client: silence
+    Server->>Client: event
 ```
 
 The exact heartbeat strategy depends on the infrastructure.
@@ -759,9 +697,9 @@ The exact heartbeat strategy depends on the infrastructure.
 
 Suppose:
 
-```text
-Client ─────────────── Server
-       SSE connection
+```mermaid
+flowchart LR
+    C["Client"] <-->|SSE connection| S["Server"]
 ```
 
 No events happen for 10 minutes.
@@ -849,17 +787,12 @@ SSE:
 ```text
 Request
    │
-   ▼
-Server starts response
-   │
-   ├── Event
-   ├── Event
-   ├── Event
-   ├── Event
-   │
-   │
-   ▼
-Connection eventually closes
+```mermaid
+flowchart TD
+    S["Server starts response"] --> E1["Event"]
+    S --> E2["Event"]
+    S --> EN["Event..."]
+    S --> C["Connection eventually closes"]
 ```
 
 The response body is streamed over time.
@@ -872,23 +805,25 @@ This is perhaps the biggest limitation.
 
 SSE is designed for:
 
-```text
-Server ─────────► Client
+```mermaid
+sequenceDiagram
+    participant Server
+    participant Client
+    Server->>Client: One-Way Stream
 ```
 
 If the client wants to send something to the server, it normally uses another HTTP request.
 
 For example:
 
-```text
-                   SSE
-Server ─────────────────────────► Client
-        notifications
-
-
-                   HTTP POST
-Client ─────────────────────────► Server
-        send message
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Note over Client,Server: SSE
+    Server->>Client: notifications
+    Note over Client,Server: HTTP POST
+    Client->>Server: send message
 ```
 
 This is completely valid.
@@ -912,10 +847,13 @@ The client doesn't necessarily need to continuously send messages over the same 
 
 The communication might simply be:
 
-```text
-Server ───── tokens ─────► Client
-Server ───── tokens ─────► Client
-Server ───── tokens ─────► Client
+```mermaid
+sequenceDiagram
+    participant Server
+    participant Client
+    Server->>Client: tokens
+    Server->>Client: tokens
+    Server->>Client: tokens
 ```
 
 SSE can be a very natural fit.
@@ -930,30 +868,24 @@ Let's compare them.
 
 ### Long Polling
 
-```text
-Request
-   ↓
-Wait
-   ↓
-Response
-   ↓
-Request again
-   ↓
-Wait
-   ↓
-Response
+```mermaid
+flowchart TD
+    Req["Request"] --> W["Wait"]
+    W --> Res["Response"]
+    Res --> R2["Request again"]
+    R2 --> W2["Wait"]
+    W2 --> Res2["Response"]
 ```
 
 ### SSE
 
-```text
-Request
-   ↓
-Persistent response
-   ├── Event
-   ├── Event
-   ├── Event
-   └── Event
+```mermaid
+flowchart TD
+    Req["Request"] --> P["Persistent response"]
+    P --> E1["Event"]
+    P --> E2["Event"]
+    P --> E3["Event"]
+    P --> EN["Event"]
 ```
 
 The biggest difference is:
@@ -1004,17 +936,11 @@ The decision should come from requirements.
 
 A classic architecture:
 
-```text
-                       Notification Event
-                              │
-                              ▼
-                         Application
-                              │
-                              ▼
-                         SSE Handler
-                              │
-                              ▼
-                            Client
+```mermaid
+flowchart TD
+    N["Notification Event"] --> A["Application"]
+    A --> H["SSE Handler"]
+    H --> C["Client"]
 ```
 
 For example:
@@ -1065,11 +991,9 @@ No repeated polling is required.
 
 Consider:
 
-```text
-Upload
-   │
-   ▼
-Processing
+```mermaid
+flowchart TD
+    U["Upload"] --> P["Processing"]
 ```
 
 The backend can send:
@@ -1103,30 +1027,20 @@ Modern AI applications often generate output incrementally.
 
 Instead of waiting:
 
-```text
-Request
-    │
-    │
-    │ generate entire answer
-    │
-    ▼
-Complete response
+```mermaid
+flowchart TD
+    Req["Request"] -->|generate entire answer| CR["Complete response"]
 ```
 
 the server can stream pieces:
 
-```text
-Request
-   │
-   ▼
-Server
-   │
-   ├── "System"
-   ├── " design"
-   ├── " is"
-   ├── " the"
-   ├── " process"
-   └── ...
+```mermaid
+flowchart TD
+    Req["Request"] --> S["Server"]
+    S --> A["System"]
+    S --> B[" design"]
+    S --> C[" is"]
+    S --> D[" ..."]
 ```
 
 The client renders the response incrementally.
@@ -1143,17 +1057,11 @@ There is an important production issue.
 
 Your application may be:
 
-```text
-Client
-   │
-   ▼
-CDN / Proxy
-   │
-   ▼
-Load Balancer
-   │
-   ▼
-Application
+```mermaid
+flowchart TD
+    C["Client"] --> P["CDN / Proxy"]
+    P --> LB{"Load Balancer"}
+    LB --> A["Application"]
 ```
 
 Even though your application keeps the response open, an intermediary may:
@@ -1212,23 +1120,13 @@ When an application writes an SSE event, it needs to make sure the data is actua
 
 Conceptually:
 
-```text
-Application writes event
-        │
-        ▼
-Application buffer
-        │
-        ▼
-HTTP server
-        │
-        ▼
-Proxy
-        │
-        ▼
-Network
-        │
-        ▼
-Client
+```mermaid
+flowchart TD
+    A["Application writes event"] --> AB["Application buffer"]
+    AB --> HS["HTTP server"]
+    HS --> P["Proxy"]
+    P --> N["Network"]
+    N --> C["Client"]
 ```
 
 Streaming only works as expected when the event progresses through the pipeline promptly.
@@ -1241,17 +1139,17 @@ The exact flushing behavior depends on the server framework and infrastructure.
 
 Suppose:
 
-```text
-                Load Balancer
-                /           \
-               ▼             ▼
-           Server A       Server B
+```mermaid
+flowchart TD
+    LB{"Load Balancer"} --> SA["Server A"]
+    LB --> SB["Server B"]
 ```
 
 Client A connects:
 
-```text
-Client A ─────► Server A
+```mermaid
+flowchart LR
+    CA["Client A"] --> SA["Server A"]
 ```
 
 The SSE connection remains open on Server A.
@@ -1260,28 +1158,22 @@ Now an event is generated.
 
 Where does it go?
 
-```text
-Event
-  │
-  ▼
-???
+```mermaid
+flowchart TD
+    E["Event"] --> Q["???"]
 ```
 
 The application needs a way for Server A to learn about the event.
 
 With multiple servers, this can lead to:
 
-```text
-                    Event Source
-                         │
-                         ▼
-                      Pub/Sub
-                     /       \
-                    ▼         ▼
-                Server A   Server B
-                    │         │
-                    ▼         ▼
-                 Clients   Clients
+```mermaid
+flowchart TD
+    E["Event Source"] --> P[("Pub/Sub")]
+    P --> SA["Server A"]
+    P --> SB["Server B"]
+    SA --> CA["Clients"]
+    SB --> CB["Clients"]
 ```
 
 This is the same distributed problem we'll encounter with WebSockets.
@@ -1292,10 +1184,10 @@ This is the same distributed problem we'll encounter with WebSockets.
 
 Imagine:
 
-```text
-Client A ─── SSE ───► Server A
-
-Client B ─── SSE ───► Server B
+```mermaid
+flowchart LR
+    CA["Client A"] -->|SSE| SA["Server A"]
+    CB["Client B"] -->|SSE| SB["Server B"]
 ```
 
 An event is created:
@@ -1314,17 +1206,10 @@ to a shared Pub/Sub system.
 
 Server A receives it:
 
-```text
-Pub/Sub
-   │
-   ▼
-Server A
-   │
-   ▼
-SSE connection
-   │
-   ▼
-Client A
+```mermaid
+flowchart TD
+    P[("Pub/Sub")] --> SA["Server A"]
+    SA -->|SSE connection| CA["Client A"]
 ```
 
 Server B doesn't necessarily need to send it to Client A because Client A's connection belongs to Server A.
@@ -1339,12 +1224,9 @@ Even though SSE uses HTTP, the connection itself is long-lived.
 
 Therefore:
 
-```text
-Client
-   │
-   │ SSE
-   ▼
-Server A
+```mermaid
+flowchart TD
+    C["Client"] -->|SSE| SA["Server A"]
 ```
 
 Server A maintains that connection.
@@ -1384,14 +1266,12 @@ If we need:
 
 we may need multiple servers.
 
-```text
-500,000 clients
-       │
-       ▼
-Load Balancer
-   │    │    │
-   ▼    ▼    ▼
- SSE1  SSE2  SSE3
+```mermaid
+flowchart TD
+    C["500,000 clients"] --> LB{"Load Balancer"}
+    LB --> S1["SSE1"]
+    LB --> S2["SSE2"]
+    LB --> S3["SSE3"]
 ```
 
 The exact connection capacity depends on:
@@ -1425,18 +1305,11 @@ but a client can only consume:
 
 Then data can accumulate.
 
-```text
-Producer
-   │
-   │ 10,000/sec
-   ▼
-SSE Server
-   │
-   │ buffer grows
-   ▼
-Slow Client
-   │
-   │ 100/sec
+```mermaid
+flowchart TD
+    P["Producer"] -->|10,000/sec| S["SSE Server"]
+    S -->|buffer grows| C["Slow Client"]
+    C -.->|100/sec| D["..."]
 ```
 
 If the buffer grows without bound:
@@ -1533,14 +1406,10 @@ You can build these capabilities around SSE, but SSE itself does not provide the
 
 Think:
 
-```text
-Message System
-      │
-      ▼
-    SSE
-      │
-      ▼
-   Browser
+```mermaid
+flowchart TD
+    M["Message System"] --> S["SSE"]
+    S --> B["Browser"]
 ```
 
 The message system and transport are separate concerns.
@@ -1569,17 +1438,11 @@ Application Server ↔ Application Server
 
 For example:
 
-```text
-Application
-    │
-    ▼
-Redis Pub/Sub
-    │
-    ▼
-SSE Server
-    │
-    ▼
-Browser
+```mermaid
+flowchart TD
+    A["Application"] --> R[("Redis Pub/Sub")]
+    R --> S["SSE Server"]
+    S --> B["Browser"]
 ```
 
 They can work together.
@@ -1608,14 +1471,10 @@ What events is this client allowed to receive?
 
 For example:
 
-```text
-User A
-   │
-   ▼
-SSE connection
-   │
-   ▼
-Only User A's notifications
+```mermaid
+flowchart TD
+    U["User A"] --> S["SSE connection"]
+    S --> N["Only User A's notifications"]
 ```
 
 This is especially important because an SSE connection can remain open for a long time.
@@ -1752,41 +1611,13 @@ A useful mental model:
 
 Let's put everything together.
 
-```text
-┌──────────────┐
-│    Client    │
-└──────┬───────┘
-       │
-       │ GET /events
-       │ Accept: text/event-stream
-       ▼
-┌──────────────┐
-│ Load Balancer│
-└──────┬───────┘
-       │
-       ▼
-┌──────────────┐
-│ SSE Server   │
-└──────┬───────┘
-       │
-       │ subscribe
-       ▼
-┌──────────────┐
-│ Event Source │
-│ / PubSub     │
-└──────┬───────┘
-       │
-       │ event
-       ▼
-┌──────────────┐
-│ SSE Server   │
-└──────┬───────┘
-       │
-       │ data: {...}
-       ▼
-┌──────────────┐
-│    Client    │
-└──────────────┘
+```mermaid
+flowchart TD
+    C1["Client"] -->|GET /events<br>Accept: text/event-stream| LB{"Load Balancer"}
+    LB --> SS1["SSE Server"]
+    SS1 -->|subscribe| ES["Event Source<br>/ PubSub"]
+    ES -->|event| SS2["SSE Server"]
+    SS2 -->|data:...| C2["Client"]
 ```
 
 The connection remains open between the SSE server and client.
@@ -1916,14 +1747,12 @@ Suppose you are building:
 
 Client needs to send:
 
-```text
-Client ─── message ───► Server
-```
-
-and receive:
-
-```text
-Server ─── message ───► Client
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: message
+    Server->>Client: message
 ```
 
 continuously.
@@ -1948,10 +1777,11 @@ SSE is not designed for this pattern.
 
 Multiple users continuously send edits:
 
-```text
-Client A ◄──────► Server
-Client B ◄──────► Server
-Client C ◄──────► Server
+```mermaid
+flowchart LR
+    CA["Client A"] <--> S["Server"]
+    CB["Client B"] <--> S
+    CC["Client C"] <--> S
 ```
 
 Bidirectional communication is central.
@@ -1964,29 +1794,14 @@ WebSockets are generally more appropriate to evaluate.
 
 A simple first-pass decision tree:
 
-```text
-                 Need real-time updates?
-                         │
-                        Yes
-                         │
-                         ▼
-             Who primarily sends data?
-                         │
-              ┌──────────┴──────────┐
-              │                     │
-            Server                Both
-              │                     │
-              ▼                     ▼
-             SSE               WebSockets
-              │
-              │
-              ▼
-     Is polling sufficient?
-              │
-        ┌─────┴─────┐
-       Yes           No
-        │             │
-     Polling         SSE
+```mermaid
+flowchart TD
+    Q1["Need real-time updates?"] -->|Yes| Q2["Who primarily sends data?"]
+    Q2 -->|Server| SSE["SSE"]
+    Q2 -->|Both| WS["WebSockets"]
+    Q1 --> Q3["Is polling sufficient?"]
+    Q3 -->|Yes| P["Polling"]
+    Q3 -->|No| SSE2["SSE"]
 ```
 
 This isn't a universal rule.
@@ -2059,45 +1874,26 @@ should be considered.
 
 We have now evolved from:
 
-```text
-Short Polling
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
 
-Client → Server
-Client ← Server
-```
-
-to:
-
-```text
-Long Polling
-
-Client → Server
-         │
-         │ wait
-         ▼
-Client ← Server
-```
-
-to:
-
-```text
-SSE
-
-Client → Server
-         │
-         ├── Event ──► Client
-         ├── Event ──► Client
-         ├── Event ──► Client
-         └── Event ──► Client
-```
-
-and eventually:
-
-```text
-WebSocket
-
-Client ◄──────────────► Server
-       messages both ways
+    Note over Client,Server: Short Polling
+    Client->>Server: Request
+    Server-->>Client: Response
+    Note over Client,Server: Long Polling
+    Client->>Server: Request
+    Note over Server: wait
+    Server-->>Client: Response
+    Note over Client,Server: SSE
+    Client->>Server: Request
+    Server->>Client: Event
+    Server->>Client: Event
+    Server->>Client: Event
+    Note over Client,Server: WebSocket
+    Client->>Server: bidirectional messages
+    Server->>Client: bidirectional messages
 ```
 
 The evolution is about **communication requirements**, not simply replacing old technology with newer technology.
@@ -2110,15 +1906,12 @@ The evolution is about **communication requirements**, not simply replacing old 
 
 It uses a long-lived HTTP response.
 
-```text
-HTTP Request
-     │
-     ▼
-Persistent HTTP Response
-     │
-     ├── Event
-     ├── Event
-     └── Event
+```mermaid
+flowchart TD
+    Req["HTTP Request"] --> Res["Persistent HTTP Response"]
+    Res --> E1["Event"]
+    Res --> E2["Event"]
+    Res --> E3["Event"]
 ```
 
 ---
@@ -2144,13 +1937,12 @@ Request → Response
 
 SSE allows:
 
-```text
-Request
-   │
-   ├── Event
-   ├── Event
-   ├── Event
-   └── Event
+```mermaid
+flowchart TD
+    Req["Request"] --> E1["Event"]
+    Req --> E2["Event"]
+    Req --> E3["Event"]
+    Req --> E4["Event"]
 ```
 
 ---
@@ -2241,63 +2033,63 @@ Clients
 
 Remember SSE like this:
 
-```text
-                         SSE
-                          │
-                          ▼
-              One HTTP connection
-                          │
-                          ▼
-                  Server keeps it open
-                          │
-             ┌────────────┼────────────┐
-             │            │            │
-             ▼            ▼            ▼
-           Event        Event        Event
-             │            │            │
-             └────────────┼────────────┘
-                          ▼
-                        Client
+```mermaid
+flowchart TD
+    SSE["SSE"] --> HC["One HTTP connection"]
+    HC --> S["Server keeps it open"]
+    S --> E1["Event"]
+    S --> E2["Event"]
+    S --> E3["Event"]
+    E1 --> C["Client"]
+    E2 --> C
+    E3 --> C
 ```
 
 And compare the three mechanisms we've learned:
 
-```text
-┌───────────────────────────────────────────────────┐
-│                 SHORT POLLING                     │
-│                                                   │
-│ Client → Request → Server → Response → repeat     │
-└───────────────────────────────────────────────────┘
+### Short Polling
 
-                       ↓
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: Request
+    Server-->>Client: Response
+```
 
-┌───────────────────────────────────────────────────┐
-│                 LONG POLLING                      │
-│                                                   │
-│ Client → Request → Server waits → Response        │
-│              → Client requests again              │
-└───────────────────────────────────────────────────┘
+### Long Polling
 
-                       ↓
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: Request
+    Note over Server: wait...
+    Server-->>Client: Response
+    Note over Client: new request triggered
+```
 
-┌───────────────────────────────────────────────────┐
-│                     SSE                           │
-│                                                   │
-│ Client → Request → Server keeps response open     │
-│                    ├── Event                      │
-│                    ├── Event                      │
-│                    ├── Event                      │
-│                    └── Event                      │
-└───────────────────────────────────────────────────┘
+### SSE
 
-                       ↓
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: Request
+    Note over Server: connection stays open
+    Server->>Client: Event
+    Server->>Client: Event
+```
 
-┌───────────────────────────────────────────────────┐
-│                  WEBSOCKET                        │
-│                                                   │
-│ Client ◄──────── persistent connection ────────►  │
-│        messages can travel in both directions     │
-└───────────────────────────────────────────────────┘
+### WebSocket
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Note over Client,Server: Persistent Connection
+    Client->>Server: message
+    Server->>Client: message
 ```
 
 The key lesson:

@@ -4,12 +4,12 @@ When you learn WebSockets, you usually build a single server. It holds an array 
 
 But what happens when your application grows beyond a single server?
 
-```text
-                  Single Server Architecture
-                  
-                          Server
-                         /  |  \
-                  Client A  B  Client C
+```mermaid
+flowchart TD
+    S["Server"] --> CA["Client A"]
+    S --> CB["Client B"]
+    S --> CC["Client C"]
+    style S stroke-width:4px
 ```
 If Client A sends a message in a chatroom, the Server organically knows about Client B and C because they all sit in the exact same memory space. It's simple. 
 
@@ -23,13 +23,12 @@ WebSockets are **stateful persistent connections**.
 
 Unlike stateless HTTP requests (where any server can handle any request), a WebSocket connection is a physical TCP pipe bolted directly to *one specific server*.
 
-```text
-                  Load Balancer
-                  /           \
-                 ▼             ▼
-             Server 1       Server 2
-               /               \
-            Client A         Client B
+```mermaid
+flowchart TD
+    LB{"Load Balancer"} --> S1["Server 1"]
+    LB --> S2["Server 2"]
+    S1 --> CA["Client A"]
+    S2 --> CB["Client B"]
 ```
 
 If Client A sends a chat message intended for Client B:
@@ -47,9 +46,17 @@ When engineers first face this, they often discover **Sticky Sessions** (Session
 
 A Load Balancer with Sticky Sessions ensures that a specific user always routes to the exact same backend server.
 
-```text
-User A ───► Load Balancer (reads cookie) ───► Server 1
-User A ───► Load Balancer (reads cookie) ───► Server 1
+```mermaid
+sequenceDiagram
+    participant User A
+    participant Load Balancer
+    participant Server 1
+    User A->>Load Balancer: Request
+    Note over Load Balancer: reads cookie
+    Load Balancer->>Server 1: Route to Server 1
+    User A->>Load Balancer: Request
+    Note over Load Balancer: reads cookie
+    Load Balancer->>Server 1: Route to Server 1
 ```
 
 **Does this solve the cross-communication problem?**
@@ -63,20 +70,14 @@ Sticky sessions only guarantee that Client A keeps talking to Server 1. It does 
 
 To allow WebSocket servers to communicate with each other, we must introduce a **Pub/Sub Backplane**.
 
-```text
-                         Clients
-                    /       |       \
-                   /        |        \
-                  ▼         ▼         ▼
-             WebSocket  WebSocket  WebSocket
-             Server 1   Server 2   Server 3
-                  \         |         /
-                   \        |        /
-                    ▼       ▼       ▼
-               ┌──────────────────────────┐
-               │    Redis Pub/Sub         │
-               │    (The Backplane)       │
-               └──────────────────────────┘
+```mermaid
+flowchart TD
+    C1["Clients"] --> S1["WebSocket Server 1"]
+    C2["Clients"] --> S2["WebSocket Server 2"]
+    C3["Clients"] --> S3["WebSocket Server 3"]
+    S1 --> R[("Redis Pub/Sub<br>(The Backplane)")]
+    S2 --> R
+    S3 --> R
 ```
 
 When you add a backplane, the architecture fundamentally changes:
@@ -95,12 +96,10 @@ The servers are no longer isolated silos; they communicate horizontally using th
 
 With a backplane in place, scaling becomes horizontal.
 
-```text
-+---------------------+
-| Traffic spikes?     | ──► Boot up Server 4, 5, 6 behind LB
-+---------------------+
-| Server 2 crashes?   | ──► Clients reconnect to remaining servers via LB
-+---------------------+
+```mermaid
+flowchart LR
+    E1["Traffic spikes?"] --> A1["Boot up Server 4, 5, 6 behind LB"]
+    E2["Server 2 crashes?"] --> A2["Clients reconnect to remaining servers via LB"]
 ```
 
 Because the central nervous system is Redis Pub/Sub, you can add 100 new WebSocket servers to the Load Balancer flawlessly. Every server just hooks into the Redis channels, and broadcasting just works.

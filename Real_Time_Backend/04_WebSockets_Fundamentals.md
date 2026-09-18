@@ -4,18 +4,22 @@ WebSockets provide a **persistent, bidirectional communication channel** between
 
 Unlike SSE:
 
-```text
-SSE
-
-Server ─────────────────► Client
+```mermaid
+sequenceDiagram
+    participant Server
+    participant Client
+    Server->>Client: One-way Stream
 ```
 
 WebSockets allow:
 
-```text
-WebSocket
-
-Client ◄────────────────► Server
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Note over Client,Server: WebSocket Connection
+    Client->>Server: Bidirectional
+    Server->>Client: Bidirectional
 ```
 
 Both sides can send messages whenever they need to.
@@ -41,34 +45,41 @@ Consider a chat application.
 
 With polling:
 
-```text
-Client ── "Any new messages?" ──► Server
-Client ◄──────── "No" ─────────── Server
-
-Client ── "Any new messages?" ──► Server
-Client ◄──────── "No" ─────────── Server
-
-Client ── "Any new messages?" ──► Server
-Client ◄─────── "Yes!" ────────── Server
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: "Any new messages?"
+    Server-->>Client: "No"
+    Client->>Server: "Any new messages?"
+    Server-->>Client: "No"
+    Client->>Server: "Any new messages?"
+    Server-->>Client: "Yes!"
 ```
 
 This is inefficient for continuous communication.
 
 With SSE:
 
-```text
-Server ─────────► Client
+```mermaid
+sequenceDiagram
+    participant Server
+    participant Client
+    Server->>Client: Push Event
 ```
 
 The server can push messages, but the client still needs another mechanism to send messages.
 
 With WebSockets:
 
-```text
-Client ─────────────► Server
-Client ◄───────────── Server
-Client ─────────────► Server
-Client ◄───────────── Server
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: Message
+    Server->>Client: Message
+    Client->>Server: Message
+    Server->>Client: Message
 ```
 
 Both sides can communicate over the same persistent connection.
@@ -79,28 +90,25 @@ Both sides can communicate over the same persistent connection.
 
 A normal HTTP interaction is generally:
 
-```text
-Request
-   │
-   ▼
-Server
-   │
-   ▼
-Response
+```mermaid
+flowchart TD
+    Req["Request"] --> S["Server"]
+    S --> Res["Response"]
 ```
 
 WebSockets change the communication model.
 
 After establishing the connection:
 
-```text
-Client ◄────────────────────────► Server
-          persistent connection
-
-Client ── message ──────────────► Server
-Client ◄──────────── message ───── Server
-Client ── message ──────────────► Server
-Client ◄──────────── message ───── Server
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Note over Client,Server: Persistent connection
+    Client->>Server: message
+    Server->>Client: message
+    Client->>Server: message
+    Server->>Client: message
 ```
 
 There is no need for a new HTTP request for every WebSocket message.
@@ -117,22 +125,22 @@ It means both sides can send data independently.
 
 For example:
 
-```text
-Client ────────► Server
-       message
-
-Client ◄──────── Server
-       message
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: message
+    Server->>Client: message
 ```
 
 And these can happen independently:
 
-```text
-Client ───────────────► Server
-           │
-           │
-           │
-Server ───────────────► Client
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: INDEPENDENT MSG
+    Server->>Client: INDEPENDENT MSG
 ```
 
 The server does not have to wait for a client request before sending a message.
@@ -153,16 +161,13 @@ The client essentially asks:
 
 Conceptually:
 
-```text
-Client
-   │
-   │ HTTP Upgrade Request
-   ▼
-Server
-   │
-   │ 101 Switching Protocols
-   ▼
-WebSocket connection
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: HTTP Upgrade Request
+    Server-->>Client: 101 Switching Protocols
+    Note over Client,Server: WebSocket connection established
 ```
 
 After the upgrade succeeds, communication switches to the WebSocket protocol.
@@ -220,12 +225,9 @@ Using HTTP for connection establishment makes it easier for WebSockets to fit in
 
 But after the upgrade:
 
-```text
-HTTP
-  │
-  │ Upgrade
-  ▼
-WebSocket protocol
+```mermaid
+flowchart TD
+    H["HTTP"] -->|Upgrade| W["WebSocket protocol"]
 ```
 
 ---
@@ -234,29 +236,15 @@ WebSocket protocol
 
 A useful mental model is:
 
-```text
-             Client
-                │
-                │ HTTP Upgrade
-                ▼
-             Server
-                │
-                │ 101
-                ▼
-        WebSocket Connected
-                │
-        ┌───────┴────────┐
-        │                │
-        ▼                ▼
-     Messages         Messages
-        │                │
-        └───────┬────────┘
-                │
-                ▼
-             Closing
-                │
-                ▼
-            Closed
+```mermaid
+flowchart TD
+    C["Client"] -->|HTTP Upgrade| S["Server"]
+    S -->|101| W["WebSocket Connected"]
+    W --> M1["Send Messages"]
+    W --> M2["Receive Messages"]
+    M1 --> CL["Closing Handshake"]
+    M2 --> CL
+    CL --> CX["Closed"]
 ```
 
 So a WebSocket has a lifecycle:
@@ -276,9 +264,7 @@ Once connected, the application can send messages.
 
 For example:
 
-```text
-Client → Server
-
+```json
 {
   "type": "message",
   "text": "Hello"
@@ -287,9 +273,7 @@ Client → Server
 
 The server might respond:
 
-```text
-Server → Client
-
+```json
 {
   "type": "message",
   "text": "Hello back"
@@ -317,17 +301,14 @@ Your application defines what the messages mean.
 
 For example:
 
-```text
-WebSocket
-    │
-    ▼
-Application messages
-    │
-    ├── chat.message
-    ├── user.typing
-    ├── room.join
-    ├── room.leave
-    └── notification
+```mermaid
+flowchart TD
+    W["WebSocket"] --> A["Application messages"]
+    A --> M1["chat.message"]
+    A --> M2["user.typing"]
+    A --> M3["room.join"]
+    A --> M4["room.leave"]
+    A --> M5["notification"]
 ```
 
 WebSocket doesn't inherently understand:
@@ -344,12 +325,9 @@ Your application does.
 
 Suppose Alice opens a chat.
 
-```text
-Alice Browser
-      │
-      │ WebSocket
-      ▼
-   Server
+```mermaid
+flowchart TD
+    A["Alice Browser"] -->|WebSocket| S["Server"]
 ```
 
 Alice sends:
@@ -363,16 +341,13 @@ Alice sends:
 
 The server processes it and sends it to Bob:
 
-```text
-Alice
-  │
-  │ message
-  ▼
-Server
-  │
-  │ message
-  ▼
-Bob
+```mermaid
+sequenceDiagram
+    participant Alice
+    participant Server
+    participant Bob
+    Alice->>Server: message
+    Server->>Bob: message
 ```
 
 The important part is that the server can send the message to Bob **without Bob having to poll for it**.
@@ -394,9 +369,11 @@ Her browser sends:
 
 The server can immediately send:
 
-```text
-Server ─────────► Bob
-                  Alice is typing
+```mermaid
+sequenceDiagram
+    participant Server
+    participant Bob
+    Server->>Bob: Alice is typing
 ```
 
 When she stops:
@@ -431,15 +408,15 @@ This is the comparison you should remember.
 
 The fundamental distinction:
 
-```text
-SSE:
-
-Server ─────────► Client
-
-
-WebSocket:
-
-Server ◄────────► Client
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Note over Server,Client: SSE
+    Server->>Client: One-way Stream
+    Note over Server,Client: WebSocket
+    Server->>Client: Bidirectional
+    Client->>Server: Bidirectional
 ```
 
 ---
@@ -487,8 +464,11 @@ For example:
 
 You might only need:
 
-```text
-Server ─────► Client
+```mermaid
+sequenceDiagram
+    participant Server
+    participant Client
+    Server->>Client: Push
 ```
 
 SSE can be enough.
@@ -507,15 +487,12 @@ A real application doesn't have to choose one technology for everything.
 
 For example:
 
-```text
-                 Application
-                      │
-          ┌───────────┴───────────┐
-          │                       │
-       REST API               WebSocket
-          │                       │
-          ▼                       ▼
-   Normal operations       Real-time events
+```mermaid
+flowchart TD
+    A["Application"] --> R["REST API"]
+    A --> W["WebSocket"]
+    R --> N["Normal operations"]
+    W --> E["Real-time events"]
 ```
 
 You might use HTTP for:
@@ -543,26 +520,20 @@ The two mechanisms can coexist.
 
 A simple architecture might look like:
 
-```text
-                Client
-                   │
-                   ▼
-             Load Balancer
-              /          \
-             ▼            ▼
-       WebSocket A    WebSocket B
+```mermaid
+flowchart TD
+    C["Client"] --> LB{"Load Balancer"}
+    LB --> W1["WebSocket A"]
+    LB --> W2["WebSocket B"]
 ```
 
 The important difference from normal short-lived HTTP requests is that a WebSocket connection stays attached to a server.
 
 For example:
 
-```text
-Client
-  │
-  │ connection
-  ▼
-Server A
+```mermaid
+flowchart TD
+    C["Client"] -->|connection| SA["Server A"]
 ```
 
 That connection remains on Server A.
@@ -575,20 +546,19 @@ The load balancer doesn't move the already-established connection to Server B fo
 
 Imagine:
 
-```text
-Client A ───► Server A
-
-Client B ───► Server B
+```mermaid
+flowchart TD
+    CA["Client A"] --> SA["Server A"]
+    CB["Client B"] --> SB["Server B"]
 ```
 
 Now Client A sends a message:
 
-```text
-Client A
-   │
-   │ "Hello"
-   ▼
-Server A
+```mermaid
+sequenceDiagram
+    participant Client A
+    participant Server A
+    Client A->>Server A: "Hello"
 ```
 
 But Client B is connected to:
@@ -601,20 +571,12 @@ How does Server A tell Server B?
 
 A simple architecture can use a shared Pub/Sub layer:
 
-```text
-Client A
-   │
-   ▼
-Server A
-   │
-   ▼
-Redis Pub/Sub
-   │
-   ▼
-Server B
-   │
-   ▼
-Client B
+```mermaid
+flowchart TD
+    CA["Client A"] --> SA["Server A"]
+    SA --> R[("Redis Pub/Sub")]
+    R --> SB["Server B"]
+    SB --> CB["Client B"]
 ```
 
 This is called a **backplane**.
@@ -633,18 +595,26 @@ A load balancer can try to keep a client's connections associated with the same 
 
 Conceptually:
 
-```text
-Client A ──► Server A
-Client A ──► Server A
-Client A ──► Server A
+```mermaid
+sequenceDiagram
+    participant Client A
+    participant Server A
+    Client A->>Server A: Request 1
+    Client A->>Server A: Request 2
+    Client A->>Server A: Request 3
 ```
 
 instead of:
 
-```text
-Client A ──► Server A
-Client A ──► Server B
-Client A ──► Server C
+```mermaid
+sequenceDiagram
+    participant Client A
+    participant Server A
+    participant Server B
+    participant Server C
+    Client A->>Server A: Request 1
+    Client A->>Server B: Request 2
+    Client A->>Server C: Request 3
 ```
 
 For WebSockets, once the connection is established, the connection itself naturally remains on that server.
@@ -661,13 +631,12 @@ A WebSocket server needs to track connected clients.
 
 Conceptually:
 
-```text
-Server
- │
- ├── Connection A
- ├── Connection B
- ├── Connection C
- └── Connection D
+```mermaid
+flowchart TD
+    S["Server"] --> A["Connection A"]
+    S --> B["Connection B"]
+    S --> C["Connection C"]
+    S --> D["Connection D"]
 ```
 
 Each connection may contain:
@@ -703,14 +672,10 @@ Even if each connection uses a relatively small amount of memory, the total can 
 
 For example, conceptually:
 
-```text
-Connections
-     │
-     ▼
-Per-connection memory
-     │
-     ▼
-Total memory
+```mermaid
+flowchart TD
+    C["Connections"] --> M["Per-connection memory"]
+    M --> T["Total memory"]
 ```
 
 And memory isn't the only limit.
@@ -732,22 +697,19 @@ Therefore, persistent connections need capacity planning.
 
 Suppose:
 
-```text
-Client
-  │
-  ▼
-Server A
+```mermaid
+flowchart TD
+    C["Client"] --> SA["Server A"]
 ```
 
 Server A crashes.
 
 The connection disappears:
 
-```text
-Client
-  │
-  X
-Server A
+```mermaid
+flowchart TD
+    C["Client"] -.->|Disconnected| S["Server A"]
+    style S fill:#f9cfcf,stroke:#ff0000
 ```
 
 The client must reconnect.
@@ -756,24 +718,13 @@ A production WebSocket application therefore needs a reconnection strategy.
 
 A common flow is:
 
-```text
-Connected
-    │
-    │ failure
-    ▼
-Disconnected
-    │
-    ▼
-Reconnect
-    │
-    ▼
-Authenticate
-    │
-    ▼
-Restore subscriptions/state
-    │
-    ▼
-Connected
+```mermaid
+stateDiagram-v2
+    Connected --> Disconnected: failure
+    Disconnected --> Reconnect
+    Reconnect --> Authenticate
+    Authenticate --> Restore: Restore subscriptions/state
+    Restore --> Connected
 ```
 
 The exact strategy depends on the application.
@@ -784,14 +735,11 @@ The exact strategy depends on the application.
 
 Imagine:
 
-```text
-WebSocket server crashes
-          │
-          ▼
-50,000 clients disconnect
-          │
-          ▼
-50,000 clients reconnect
+```mermaid
+flowchart TD
+    C["WebSocket server crashes"] --> D["50,000 clients disconnect"]
+    D --> R["50,000 clients reconnect"]
+    style C fill:#f9cfcf,stroke:#ff0000
 ```
 
 If they all reconnect simultaneously:
@@ -832,9 +780,12 @@ Pong
 
 Conceptually:
 
-```text
-Server ───── Ping ─────► Client
-Server ◄──── Pong ────── Client
+```mermaid
+sequenceDiagram
+    participant Server
+    participant Client
+    Server->>Client: Ping
+    Client->>Server: Pong
 ```
 
 This helps detect broken or unresponsive connections.
@@ -855,17 +806,11 @@ You don't want to abruptly terminate thousands of connections.
 
 A better approach is:
 
-```text
-Stop accepting new connections
-          │
-          ▼
-Drain existing connections
-          │
-          ▼
-Clients reconnect elsewhere
-          │
-          ▼
-Shutdown
+```mermaid
+flowchart TD
+    S["Stop accepting new connections"] --> D["Drain existing connections"]
+    D --> C["Clients reconnect elsewhere"]
+    C --> X["Shutdown"]
 ```
 
 This becomes particularly important in rolling deployments.
@@ -880,8 +825,11 @@ A very important misconception:
 
 Suppose:
 
-```text
-Server ─── message ───► Client
+```mermaid
+sequenceDiagram
+    participant Server
+    participant Client
+    Server->>Client: message
 ```
 
 and immediately afterward the connection breaks.
@@ -892,27 +840,21 @@ WebSocket itself does not provide a durable message history like a message broke
 
 If your application needs recovery, you may need:
 
-```text
-WebSocket
-    +
-Message IDs
-    +
-Persistent storage / message system
+```mermaid
+flowchart TD
+    W["WebSocket"] --> I["Message IDs"]
+    I --> P["Persistent storage"]
 ```
 
 For example:
 
-```text
-Client reconnects
-       │
-       ▼
-"Last message I received = 104"
-       │
-       ▼
-Server
-       │
-       ▼
-Send missing messages
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: Reconnects
+    Client->>Server: "Last message I received = 104"
+    Server->>Client: Send missing messages
 ```
 
 This is an **application-level reliability mechanism**.
@@ -927,11 +869,11 @@ But distributed applications introduce additional complexity.
 
 For example:
 
-```text
-Client A
-   │
-   ▼
-Server A ──► Pub/Sub ──► Server B
+```mermaid
+flowchart LR
+    CA["Client A"] --> SA["Server A"]
+    SA --> P[("Pub/Sub")]
+    P --> SB["Server B"]
 ```
 
 Now your application may have:
@@ -967,15 +909,10 @@ ws://
 
 Conceptually:
 
-```text
-ws://
-  │
-  └── WebSocket without TLS
-
-
-wss://
-  │
-  └── WebSocket over TLS
+```mermaid
+flowchart LR
+    ws["ws://"] -->|"Without TLS"| insecure["Insecure WebSocket"]
+    wss["wss://"] -->|"Over TLS"| secure["Secure WebSocket (Standard)"]
 ```
 
 You also need to consider:
@@ -1003,23 +940,21 @@ Room: cricket-match-123
 
 Clients can join:
 
-```text
-Client A ──┐
-Client B ──┼──► Room 123
-Client C ──┘
+```mermaid
+flowchart LR
+    CA["Client A"] --> R["Room 123"]
+    CB["Client B"] --> R
+    CC["Client C"] --> R
 ```
 
 When an event occurs:
 
-```text
-Server
-   │
-   ▼
-Room 123
-   │
-   ├──► Client A
-   ├──► Client B
-   └──► Client C
+```mermaid
+flowchart TD
+    S["Server"] --> R["Room 123"]
+    R --> CA["Client A"]
+    R --> CB["Client B"]
+    R --> CC["Client C"]
 ```
 
 Rooms are not part of the core WebSocket protocol.
@@ -1102,36 +1037,22 @@ We'll cover the distinction properly in the library chapter.
 
 A small application:
 
-```text
-┌──────────────┐
-│    Client    │
-└──────┬───────┘
-       │
-       │ WebSocket
-       ▼
-┌──────────────┐
-│ WebSocket    │
-│ Server       │
-└──────┬───────┘
-       │
-       ├──────────────► Database
-       │
-       └──────────────► Application Logic
+```mermaid
+flowchart TD
+    C["Client"] -->|WebSocket| W["WebSocket Server"]
+    W --> D[("Database")]
+    W --> A["Application Logic"]
 ```
 
 For example, a chat message:
 
-```text
-Client
-  │
-  │ send message
-  ▼
-WebSocket Server
-  │
-  ├── validate
-  ├── authenticate
-  ├── persist
-  └── broadcast
+```mermaid
+flowchart TD
+    C["Client"] -->|send message| WS["WebSocket Server"]
+    WS --> V["validate"]
+    WS --> A["authenticate"]
+    WS --> P["persist"]
+    WS --> B["broadcast"]
 ```
 
 ---
@@ -1140,43 +1061,30 @@ WebSocket Server
 
 When we have multiple servers:
 
-```text
-                         Clients
-                      /     |     \
-                     /      |      \
-                    ▼       ▼       ▼
-              ┌─────────────────────────┐
-              │      Load Balancer      │
-              └────────────┬────────────┘
-                           │
-                ┌──────────┼──────────┐
-                ▼          ▼          ▼
-             WS Server  WS Server  WS Server
-                │          │          │
-                └──────────┼──────────┘
-                           ▼
-                      Pub/Sub
-                           │
-                           ▼
-                       Database
+```mermaid
+flowchart TD
+    C["Clients"] --> LB{"Load Balancer"}
+    LB --> W1["WS Server"]
+    LB --> W2["WS Server"]
+    LB --> W3["WS Server"]
+    W1 --> P[("Pub/Sub")]
+    W2 --> P
+    W3 --> P
+    P --> DB[("Database")]
 ```
 
 The Pub/Sub layer allows servers to exchange events.
 
 For example:
 
-```text
-Client A
-   │
-   ▼
-WS Server 1
-   │
-   ▼
-Pub/Sub
-   │
-   ├────► WS Server 2 ───► Client B
-   │
-   └────► WS Server 3 ───► Client C
+```mermaid
+flowchart TD
+    CA["Client A"] --> W1["WS Server 1"]
+    W1 --> P[("Pub/Sub")]
+    P --> W2["WS Server 2"]
+    P --> W3["WS Server 3"]
+    W2 --> CB["Client B"]
+    W3 --> CC["Client C"]
 ```
 
 This is a foundational architecture pattern for large real-time systems.
@@ -1201,14 +1109,9 @@ The request is short-lived.
 
 With WebSockets:
 
-```text
-Connection
-   │
-   ├── message
-   ├── message
-   ├── message
-   ├── message
-   └── ...
+```mermaid
+flowchart TD
+    C["Connection"] -->|Continuous Stream| M["message, message, message..."]
 ```
 
 The server must maintain the connection for potentially a long time.
@@ -1229,14 +1132,10 @@ WebSockets solve a specific communication problem:
 
 The answer:
 
-```text
-HTTP Upgrade
-      │
-      ▼
-WebSocket connection
-      │
-      ▼
-Bidirectional messages
+```mermaid
+flowchart TD
+    H["HTTP Upgrade"] --> W["WebSocket connection"]
+    W --> B["Bidirectional messages"]
 ```
 
 ---
@@ -1266,54 +1165,39 @@ This distinction is critical.
 
 Remember WebSockets as:
 
-```text
-                    HTTP
-                     │
-                     │ Upgrade
-                     ▼
-              WebSocket Connection
-                     │
-                     ▼
-          ┌──────────────────────┐
-          │   Persistent Channel │
-          └──────────────────────┘
-               ▲            │
-               │            │
-               │            │
-          Client           Server
-               │            │
-               └────────────┘
-                 bidirectional
+```mermaid
+flowchart TD
+    H["HTTP"] -->|Upgrade| WC["WebSocket Connection"]
+    WC --> PC["Persistent Channel"]
+    C["Client"] <-.->|Bidirectional| S["Server"]
+    C -.-> PC
+    S -.-> PC
 ```
 
 Or simply:
 
-```text
-SSE:
-
-Server ─────────────────► Client
-
-
-WebSocket:
-
-Client ◄────────────────► Server
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Note over Client,Server: SSE
+    Server->>Client: One-way Stream
+    Note over Client,Server: WebSocket
+    Client->>Server: Bidirectional
+    Server->>Client: Bidirectional
 ```
 
 And at system level:
 
-```text
-                    Load Balancer
-                         │
-              ┌──────────┼──────────┐
-              ▼          ▼          ▼
-            WS 1       WS 2       WS 3
-              │          │          │
-              └──────────┼──────────┘
-                         ▼
-                      Pub/Sub
-                         │
-                         ▼
-                      Database
+```mermaid
+flowchart TD
+    LB{"Load Balancer"} --> W1["WS 1"]
+    LB --> W2["WS 2"]
+    LB --> W3["WS 3"]
+    W1 --> P[("Pub/Sub")]
+    W2 --> P
+    W3 --> P
+    P --> DB[("Database")]
 ```
 
 The WebSocket itself is only the **communication channel**.
@@ -1326,8 +1210,11 @@ The rest of the architecture exists to make that channel useful, scalable, relia
 
 1. **WebSocket provides persistent bidirectional communication.**
 
-```text
-Client ◄────────► Server
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: Bidirectional
 ```
 
 2. A WebSocket connection **starts with an HTTP Upgrade handshake**.

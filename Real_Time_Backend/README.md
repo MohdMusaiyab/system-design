@@ -61,7 +61,7 @@ This chapter explores how we build these systems, starting from simple polling a
 
 ## Chapter 1 — Real-Time Backend Fundamentals
 
-**File:** `01_Real_Time_Fundamentals.md`
+**File:** [01_Real_Time_Fundamentals.md](01_Real_Time_Fundamentals.md)
 
 We start with the problem itself.
 
@@ -87,7 +87,7 @@ Understand **why different real-time technologies exist** before learning how th
 
 ## Chapter 2 — Polling and Long Polling
 
-**File:** `02_Polling_And_Long_Polling.md`
+**File:** [02_Polling_And_Long_Polling.md](02_Polling_And_Long_Polling.md)
 
 Before WebSockets, understand the simpler approaches.
 
@@ -113,7 +113,7 @@ Understand the limitations that eventually led to persistent real-time connectio
 
 ## Chapter 3 — Server-Sent Events (SSE)
 
-**File:** `03_Server_Sent_Events.md`
+**File:** [03_Server_Sent_Events.md](03_Server_Sent_Events.md)
 
 SSE provides a simple way for servers to continuously push events to clients over HTTP.
 
@@ -140,7 +140,7 @@ Understand when **one-way real-time communication** is enough.
 
 ## Chapter 4 — WebSockets Fundamentals
 
-**File:** `04_WebSockets_Fundamentals.md`
+**File:** [04_WebSockets_Fundamentals.md](04_WebSockets_Fundamentals.md)
 
 Now we move to the most important real-time communication mechanism in this roadmap.
 
@@ -166,7 +166,7 @@ Build a strong mental model of **what a WebSocket connection actually is**.
 
 ## Chapter 5 — WebSocket Protocol Deep Dive
 
-**File:** `05_WebSocket_Protocol.md`
+**File:** [05_WebSocket_Protocol.md](05_WebSocket_Protocol.md)
 
 Now we go below the high-level API and understand the protocol itself.
 
@@ -195,7 +195,7 @@ Understand what is happening **underneath libraries such as `ws` or Gorilla WebS
 
 ## Chapter 6 — WebSocket Libraries and Implementations
 
-**File:** `06_WebSocket_Libraries.md`
+**File:** [06_WebSocket_Libraries.md](06_WebSocket_Libraries.md)
 
 A protocol is one thing; implementing it in production is another.
 
@@ -232,7 +232,7 @@ Understand **what the libraries actually provide** instead of treating them as i
 
 ## Chapter 7 — Scaling WebSocket Servers
 
-**File:** `07_Scaling_WebSockets.md`
+**File:** [07_Scaling_WebSockets.md](07_Scaling_WebSockets.md)
 
 One WebSocket server is relatively simple.
 
@@ -276,7 +276,7 @@ to:
 
 ## Chapter 8 — Redis Pub/Sub and the Real-Time Backplane
 
-**File:** `08_Redis_PubSub_Backplane.md`
+**File:** [08_Redis_PubSub_Backplane.md](08_Redis_PubSub_Backplane.md)
 
 When clients are connected to different WebSocket servers, those servers need a way to communicate.
 
@@ -303,7 +303,7 @@ Understand **why a backplane is required** and what Redis Pub/Sub does—and doe
 
 ## Chapter 9 — Reliability of Real-Time Connections
 
-**File:** `09_Real_Time_Reliability.md`
+**File:** [09_Real_Time_Reliability.md](09_Real_Time_Reliability.md)
 
 Real-time connections fail.
 
@@ -335,7 +335,7 @@ Understand how real-time systems behave **when things go wrong**.
 
 ## Chapter 10 — Backpressure
 
-**File:** `10_Backpressure.md`
+**File:** [10_Backpressure.md](10_Backpressure.md)
 
 A real-time system can generate messages faster than a client can consume them.
 
@@ -372,7 +372,7 @@ Understand how to prevent a slow client from becoming a **resource problem for t
 
 ## Chapter 11 — Presence and Connection State
 
-**File:** `11_Presence_System.md`
+**File:** [11_Presence_System.md](11_Presence_System.md)
 
 Real-time applications often need to answer questions such as:
 
@@ -403,7 +403,7 @@ Understand how real-time systems manage **short-lived distributed state**.
 
 ## Chapter 12 — Real-Time Architecture
 
-**File:** `12_Real_Time_Architecture.md`
+**File:** [12_Real_Time_Architecture.md](12_Real_Time_Architecture.md)
 
 Now we combine everything into a production-style architecture.
 
@@ -449,7 +449,7 @@ Put the individual concepts together into a **real production architecture**.
 
 ## Chapter 13 — Choosing the Right Real-Time Technology
 
-**File:** `13_Real_Time_Tradeoffs.md`
+**File:** [13_Real_Time_Tradeoffs.md](13_Real_Time_Tradeoffs.md)
 
 There is no universal "best" real-time technology.
 
@@ -587,33 +587,31 @@ And we should be able to explain:
 
 The recommended order is:
 
-```text
-01. Real-Time Fundamentals
+01. [Real-Time Fundamentals](01_Real_Time_Fundamentals.md)
         ↓
-02. Polling & Long Polling
+02. [Polling & Long Polling](02_Polling_And_Long_Polling.md)
         ↓
-03. SSE
+03. [SSE](03_Server_Sent_Events.md)
         ↓
-04. WebSocket Fundamentals
+04. [WebSocket Fundamentals](04_WebSockets_Fundamentals.md)
         ↓
-05. WebSocket Protocol
+05. [WebSocket Protocol](05_WebSocket_Protocol.md)
         ↓
-06. WebSocket Libraries
+06. [WebSocket Libraries](06_WebSocket_Libraries.md)
         ↓
-07. Scaling WebSockets
+07. [Scaling WebSockets](07_Scaling_WebSockets.md)
         ↓
-08. Redis Pub/Sub Backplane
+08. [Redis Pub/Sub Backplane](08_Redis_PubSub_Backplane.md)
         ↓
-09. Real-Time Reliability
+09. [Real-Time Reliability](09_Real_Time_Reliability.md)
         ↓
-10. Backpressure
+10. [Backpressure](10_Backpressure.md)
         ↓
-11. Presence
+11. [Presence](11_Presence_System.md)
         ↓
-12. Real-Time Architecture
+12. [Real-Time Architecture](12_Real_Time_Architecture.md)
         ↓
-13. Technology Trade-offs
-```
+13. [Technology Trade-offs](13_Real_Time_Tradeoffs.md)
 
 This order intentionally goes from:
 

@@ -36,10 +36,9 @@ User A sends a message:
 
 The backend stores it:
 
-```text
-Database
-   │
-   └── Message exists
+```mermaid
+flowchart TD
+    DB[("Database")] --> M["Message exists"]
 ```
 
 But User B's browser doesn't automatically know that the message exists.
@@ -48,9 +47,12 @@ Why?
 
 Because a normal HTTP interaction looks like:
 
-```text
-Client ─────── Request ───────► Server
-Client ◄────── Response ─────── Server
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: Request
+    Server-->>Client: Response
 ```
 
 The server sends a response **because the client made a request**.
@@ -80,21 +82,19 @@ That's polling.
 
 For example:
 
-```text
-Every 5 seconds:
-
-Client ─── "Anything new?" ───► Server
-Client ◄────── "No" ─────────── Server
-
-       5 seconds later
-
-Client ─── "Anything new?" ───► Server
-Client ◄────── "No" ─────────── Server
-
-       5 seconds later
-
-Client ─── "Anything new?" ───► Server
-Client ◄──── "Yes, new data" ── Server
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Note over Client,Server: Every 5 seconds:
+    Client->>Server: "Anything new?"
+    Server-->>Client: "No"
+    Note over Client,Server: 5 seconds later
+    Client->>Server: "Anything new?"
+    Server-->>Client: "No"
+    Note over Client,Server: 5 seconds later
+    Client->>Server: "Anything new?"
+    Server-->>Client: "Yes, new data"
 ```
 
 This is called **Short Polling**.
@@ -109,32 +109,20 @@ The request is expected to complete quickly.
 
 The lifecycle is:
 
-```text
-Request
-   │
-   ▼
-Server checks state
-   │
-   ▼
-Server responds
-   │
-   ▼
-Connection/request ends
+```mermaid
+flowchart TD
+    Req["Request"] --> SC["Server checks state"]
+    SC --> SR["Server responds"]
+    SR --> CX["Connection/request ends"]
 ```
 
 Then, after some interval:
 
-```text
-Request
-   │
-   ▼
-Response
-   │
-   ▼
-Wait
-   │
-   ▼
-Request again
+```mermaid
+flowchart TD
+    Req["Request"] --> Res["Response"]
+    Res --> W["Wait"]
+    W --> R2["Request again"]
 ```
 
 The connection is not intentionally kept open waiting for an event.
@@ -195,22 +183,12 @@ Now the browser updates the UI.
 
 Conceptually:
 
-```text
-              ┌─────────────────────┐
-              │                     │
-              ▼                     │
-         Send Request               │
-              │                     │
-              ▼                     │
-         Server Checks              │
-              │                     │
-              ▼                     │
-         Send Response              │
-              │                     │
-              ▼                     │
-          Wait N seconds             │
-              │                     │
-              └─────────────────────┘
+```mermaid
+flowchart TD
+    SR["Send Request"] --> SC["Server Checks"]
+    SC --> Res["Send Response"]
+    Res --> W["Wait N seconds"]
+    W --> SR
 ```
 
 The important thing is:
@@ -229,17 +207,11 @@ GET /notifications
 
 The server may perform something like:
 
-```text
-Request
-   │
-   ▼
-Authenticate user
-   │
-   ▼
-Check notifications
-   │
-   ▼
-Return result
+```mermaid
+flowchart TD
+    Req["Request"] --> Auth["Authenticate user"]
+    Auth --> Check["Check notifications"]
+    Check --> Ret["Return result"]
 ```
 
 If nothing changed:
@@ -397,18 +369,11 @@ The HTTP server isn't necessarily the only thing receiving work.
 
 Consider:
 
-```text
-Client
-   │
-   │ Poll
-   ▼
-Load Balancer
-   │
-   ▼
-Application Server
-   │
-   ▼
-Redis / Database
+```mermaid
+flowchart TD
+    C["Client"] -->|Poll| LB{"Load Balancer"}
+    LB --> A["Application Server"]
+    A --> DB[("Redis / Database")]
 ```
 
 Every poll may cause:
@@ -424,17 +389,11 @@ So one client request can cause work across several components.
 
 At scale:
 
-```text
-Many clients
-     │
-     ▼
-Many polls
-     │
-     ▼
-Many application requests
-     │
-     ▼
-Many database/cache operations
+```mermaid
+flowchart TD
+    C["Many clients"] --> P["Many polls"]
+    P --> R["Many application requests"]
+    R --> D["Many database/cache operations"]
 ```
 
 Polling can therefore become a **load multiplier**.
@@ -509,22 +468,18 @@ Think of polling as:
 
 Generally:
 
-```text
-More frequent polling
-        ↓
-Better freshness
-        ↓
-Higher resource consumption
+```mermaid
+flowchart TD
+    M["More frequent polling"] --> B["Better freshness"]
+    B --> H["Higher resource consumption"]
 ```
 
 while:
 
-```text
-Less frequent polling
-        ↓
-Lower resource consumption
-        ↓
-More stale data
+```mermaid
+flowchart TD
+    L["Less frequent polling"] --> R["Lower resource consumption"]
+    R --> S["More stale data"]
 ```
 
 This is a classic system-design trade-off.
@@ -537,15 +492,13 @@ Suppose we poll every 10 seconds.
 
 An event can happen immediately after a poll:
 
-```text
-Poll
- │
- │
- │ Event happens here
- │
- │
- │
-Next poll
+```mermaid
+sequenceDiagram
+    participant Time
+    participant Event
+    Time->>Event: Poll
+    Note over Event: Event happens here
+    Time->>Event: Next poll
 ```
 
 The client may not discover the event until almost 10 seconds later.
@@ -776,18 +729,13 @@ Long polling changes the strategy:
 
 The server keeps the request open for some period.
 
-```text
-Client ───────────── Request ─────────────► Server
-                                             │
-                                             │
-                                             │ waiting...
-                                             │
-                                             │ waiting...
-                                             │
-                                       event occurs
-                                             │
-                                             ▼
-Client ◄──────────── Response ─────────────── Server
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: Request
+    Note over Server: waiting...<br>event occurs
+    Server-->>Client: Response
 ```
 
 ---
@@ -846,26 +794,15 @@ Now the client receives the response.
 
 # 2.20 Long Polling Timeline
 
-```text
-Time ───────────────────────────────────────────────►
-
-Client       Server
-
-  │             │
-  │── Request ─►│
-  │             │
-  │             │ waiting...
-  │             │
-  │             │ waiting...
-  │             │
-  │             │ New event
-  │             │
-  │◄── Response ─
-  │             │
-  │
-  │── Request ─►│
-  │             │
-  │             │ waiting...
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: Request
+    Note over Server: waiting...<br>New event
+    Server-->>Client: Response
+    Client->>Server: Request
+    Note over Server: waiting...
 ```
 
 The important point:
@@ -880,22 +817,18 @@ This distinction matters when we compare long polling with SSE and WebSockets.
 
 Long polling may look like a persistent connection, but conceptually it is still:
 
-```text
-Request
-   ↓
-Wait
-   ↓
-Response
+```mermaid
+flowchart TD
+    Req["Request"] --> W["Wait"]
+    W --> Res["Response"]
 ```
 
 Then:
 
-```text
-Request
-   ↓
-Wait
-   ↓
-Response
+```mermaid
+flowchart TD
+    Req["Request"] --> W["Wait"]
+    W --> Res["Response"]
 ```
 
 It is not a true bidirectional persistent communication channel.
@@ -912,18 +845,12 @@ Request → wait → response
 
 ### WebSocket
 
-```text
-Connect
-   ↓
-Persistent connection
-   ↕
-Messages
-   ↕
-Messages
-   ↕
-Messages
-   ↓
-Close
+```mermaid
+flowchart TD
+    C["Connect"] --> P["Persistent connection"]
+    P <--> M1["Messages"]
+    P <--> M2["Messages"]
+    P --> CX["Close"]
 ```
 
 This difference becomes important later.
@@ -940,14 +867,11 @@ The key benefit is that the client doesn't repeatedly ask and immediately receiv
 
 Instead:
 
-```text
-Client asks
-     ↓
-Server waits
-     ↓
-Something happens
-     ↓
-Server responds
+```mermaid
+flowchart TD
+    C["Client asks"] --> SW["Server waits"]
+    SW --> E["Something happens"]
+    E --> SR["Server responds"]
 ```
 
 So the response itself becomes an indication that something happened.
@@ -986,15 +910,11 @@ Maximum wait = 30 seconds
 
 Then:
 
-```text
-Request
-   │
-   ▼
-Wait
-   │
-   ├──── event occurs ────► Response with event
-   │
-   └──── timeout ─────────► Empty response
+```mermaid
+flowchart TD
+    Req["Request"] --> W["Wait"]
+    W -->|event occurs| RE["Response with event"]
+    W -->|timeout| RE2["Empty response"]
 ```
 
 The client then starts another long-poll request.
@@ -1007,38 +927,22 @@ A timeout gives the server a way to periodically clean up old requests.
 
 Without a timeout:
 
-```text
-Client
-   │
-   │ request
-   ▼
-Server
-   │
-   │ waiting...
-   │
-   │ waiting...
-   │
-   │ waiting...
-   │
-   │ forever?
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: request
+    Note over Server: waiting...<br>waiting...<br>forever?
 ```
 
 A timeout gives us:
 
-```text
-Request
-   │
-   ▼
-Wait
-   │
-   ▼
-Timeout
-   │
-   ▼
-Response
-   │
-   ▼
-Connection ends
+```mermaid
+flowchart TD
+    Req["Request"] --> W["Wait"]
+    W --> T["Timeout"]
+    T --> Res["Response"]
+    Res --> CX["Connection ends"]
 ```
 
 This makes resource management more predictable.
@@ -1051,16 +955,12 @@ There can be multiple timeout layers.
 
 For example:
 
-```text
-Client timeout
-       │
-Load balancer timeout
-       │
-Reverse proxy timeout
-       │
-Application server timeout
-       │
-Database timeout
+```mermaid
+flowchart TD
+    C["Client timeout"] --> LB["Load balancer timeout"]
+    LB --> RP["Reverse proxy timeout"]
+    RP --> AS["Application server timeout"]
+    AS --> DB["Database timeout"]
 ```
 
 They don't necessarily have the same value.
@@ -1089,25 +989,15 @@ This is an important production consideration.
 
 A simplified lifecycle:
 
-```text
 1. Client creates request
-          ↓
 2. Server receives request
-          ↓
 3. Server checks for event
-          ↓
 4. No event
-          ↓
 5. Server waits
-          ↓
 6. Event occurs OR timeout
-          ↓
 7. Server sends response
-          ↓
 8. Request ends
-          ↓
 9. Client immediately creates another request
-```
 
 Notice step 9.
 
@@ -1181,22 +1071,12 @@ Instead, a well-designed application can use an event-driven mechanism.
 
 Conceptually:
 
-```text
-Long Poll Request
-       │
-       ▼
-Register interest
-       │
-       ▼
-Suspend request
-       │
-       │
-       │ event occurs
-       ▼
-Resume request
-       │
-       ▼
-Send response
+```mermaid
+flowchart TD
+    Req["Long Poll Request"] --> R["Register interest"]
+    R --> S["Suspend request"]
+    S -->|event occurs| Res["Resume request"]
+    Res --> SRes["Send response"]
 ```
 
 The exact implementation depends on the framework and architecture.
@@ -1211,26 +1091,12 @@ The important concept is:
 
 A naïve implementation might do:
 
-```text
-Long Poll Request
-      │
-      ▼
-Check DB
-      │
-      ▼
-Nothing
-      │
-      ▼
-Wait 500 ms
-      │
-      ▼
-Check DB again
-      │
-      ▼
-Nothing
-      │
-      ▼
-...
+```mermaid
+flowchart TD
+    Req["Long Poll Request"] --> C1["Check DB"]
+    C1 --> N1["Nothing"]
+    N1 --> W["Wait 500 ms"]
+    W --> C2["Check DB again"]
 ```
 
 This is effectively polling **inside the server**.
@@ -1239,17 +1105,11 @@ It can create unnecessary database load.
 
 A better architecture might use an event source:
 
-```text
-                    New Event
-                       │
-                       ▼
-                   Event Bus
-                       │
-                       ▼
-                Long Poll Handler
-                       │
-                       ▼
-                    Client
+```mermaid
+flowchart TD
+    E["New Event"] --> B["Event Bus"]
+    B --> H["Long Poll Handler"]
+    H --> C["Client"]
 ```
 
 This is one reason real-time systems often introduce messaging or event-driven mechanisms as they become more sophisticated.
@@ -1327,12 +1187,11 @@ with long polling.
 
 Many clients may have active requests:
 
-```text
-Load Balancer
-     │
-     ├── Server A → 30,000 waiting requests
-     ├── Server B → 35,000 waiting requests
-     └── Server C → 35,000 waiting requests
+```mermaid
+flowchart TD
+    LB{"Load Balancer"} --> SA["Server A<br>30,000 waiting requests"]
+    LB --> SB["Server B<br>35,000 waiting requests"]
+    LB --> SC["Server C<br>35,000 waiting requests"]
 ```
 
 These aren't necessarily consuming 100% CPU.
@@ -1388,11 +1247,10 @@ This becomes even more important with WebSockets.
 
 Suppose we have:
 
-```text
-              Load Balancer
-              /           \
-             ▼             ▼
-         Server A       Server B
+```mermaid
+flowchart TD
+    LB{"Load Balancer"} --> SA["Server A"]
+    LB --> SB["Server B"]
 ```
 
 A client sends:
@@ -1407,11 +1265,9 @@ Server A waits for an event.
 
 Now the event happens somewhere else:
 
-```text
-Database / Event System
-       │
-       ▼
-    Server B
+```mermaid
+flowchart TD
+    D[("Database / Event System")] --> SB["Server B"]
 ```
 
 But the client's long-poll request is sitting on:
@@ -1430,30 +1286,22 @@ This introduces a distributed coordination problem.
 
 A common architecture becomes:
 
-```text
-                 Application
-                     │
-                     ▼
-                  Pub/Sub
-                 /       \
-                ▼         ▼
-            Server A   Server B
-                │           │
-                ▼           ▼
-             Clients     Clients
+```mermaid
+flowchart TD
+    A["Application"] --> P[("Pub/Sub")]
+    P --> SA["Server A"]
+    P --> SB["Server B"]
+    SA --> CA["Clients"]
+    SB --> CB["Clients"]
 ```
 
 Now if an event occurs:
 
-```text
-Event
-  │
-  ▼
-Pub/Sub
-  │
-  ├────► Server A
-  │
-  └────► Server B
+```mermaid
+flowchart TD
+    E["Event"] --> P[("Pub/Sub")]
+    P --> SA["Server A"]
+    P --> SB["Server B"]
 ```
 
 The server holding the relevant client's connection can deliver the event.
@@ -1472,13 +1320,10 @@ The idea is:
 
 For example:
 
-```text
-Client A
-   │
-   ▼
-Load Balancer
-   │
-   └────────► Server A
+```mermaid
+flowchart TD
+    CA["Client A"] --> LB{"Load Balancer"}
+    LB --> SA["Server A"]
 ```
 
 Future requests from Client A are routed to Server A.
@@ -1499,34 +1344,24 @@ We will study sticky sessions in much greater detail in the WebSocket scaling ch
 
 Imagine:
 
-```text
-Client
-   │
-   ▼
-Server A
-   │
-   │ long-poll request waiting
-   │
-   ▼
-Server crashes
+```mermaid
+flowchart TD
+    C["Client"] --> S["Server A"]
+    S -.->|long-poll request waiting| CR["Server crashes"]
+    style CR fill:#f9cfcf,stroke:#ff0000
 ```
 
 The request disappears.
 
 The client eventually detects the failure and creates another request.
 
-```text
-Server A
-   ↓
-Crash
-   ↓
-Client detects failure
-   ↓
-Reconnect
-   ↓
-Load Balancer
-   ↓
-Server B
+```mermaid
+flowchart TD
+    S["Server A"] --> C["Crash"]
+    C --> F["Client detects failure"]
+    F --> R["Reconnect"]
+    R --> LB{"Load Balancer"}
+    LB --> SB["Server B"]
 ```
 
 This is where reconnection behavior becomes important.
@@ -1539,15 +1374,11 @@ A real-time client should generally expect that communication can fail.
 
 A simplified client loop:
 
-```text
-Connect
-   │
-   ▼
-Wait for response
-   │
-   ├── Event → process → reconnect
-   │
-   └── Timeout → reconnect
+```mermaid
+flowchart TD
+    C["Connect"] --> W["Wait for response"]
+    W --> E["Event -> process -> reconnect"]
+    W --> T["Timeout -> reconnect"]
 ```
 
 But there is a danger.
@@ -1568,34 +1399,22 @@ A **thundering herd** occurs when many clients react to the same event simultane
 
 For example:
 
-```text
-Server restart
-      │
-      ▼
-100,000 clients disconnected
-      │
-      ▼
-100,000 reconnect attempts
-      │
-      ▼
-Load Balancer
-      │
-      ▼
-Backend servers overloaded
+```mermaid
+flowchart TD
+    S["Server restart"] --> D["100,000 clients disconnected"]
+    D --> R["100,000 reconnect attempts"]
+    R --> LB{"Load Balancer"}
+    LB --> O["Backend servers overloaded"]
 ```
 
 This can cause a feedback loop:
 
-```text
-Overload
-   ↓
-Requests fail
-   ↓
-Clients retry
-   ↓
-More requests
-   ↓
-More overload
+```mermaid
+flowchart TD
+    O["Overload"] --> R["Requests fail"]
+    R --> C["Clients retry"]
+    C --> M["More requests"]
+    M --> M2["More overload"]
 ```
 
 This is extremely dangerous.
@@ -1900,47 +1719,36 @@ Long polling was an important evolutionary step because it demonstrated a differ
 
 Instead of:
 
-```text
-Client:
-"Has anything happened?"
-
-Server:
-"No."
-
-Client:
-"Has anything happened?"
-
-Server:
-"No."
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: "Has anything happened?"
+    Server-->>Client: "No."
+    Client->>Server: "Has anything happened?"
+    Server-->>Client: "No."
 ```
 
 we can do:
 
-```text
-Client:
-"Tell me when something happens."
-
-Server:
-"Okay, I'll keep this request open."
-
-             ...
-
-Server:
-"Something happened."
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: "Tell me when something happens."
+    Note over Server: "Okay, I'll keep this request open."<br>... waiting ...
+    Server-->>Client: "Something happened."
 ```
 
 This significantly improves the communication model.
 
 But it still has the fundamental structure:
 
-```text
-Request
-   ↓
-Wait
-   ↓
-Response
-   ↓
-New Request
+```mermaid
+flowchart TD
+    Req["Request"] --> W["Wait"]
+    W --> Res["Response"]
+    Res --> NR["New Request"]
 ```
 
 That limitation leads us toward persistent streaming mechanisms.
@@ -1980,14 +1788,12 @@ Request → Wait → Response
 Open once and keep communicating
 ```
 
-```text
-Connect
-   │
-   ├── Event
-   ├── Event
-   ├── Event
-   ├── Event
-   └── Close
+```mermaid
+flowchart TD
+    C["Connect"] -->|stream| E1["Event"]
+    C -->|stream| E2["Event"]
+    C -->|stream| EN["Event..."]
+    C --> CX["Close"]
 ```
 
 SSE and WebSockets take the next step.
@@ -2049,16 +1855,12 @@ A simple polling endpoint may be completely adequate.
 
 Building:
 
-```text
-Load Balancer
-      │
-WebSocket cluster
-      │
-Redis Pub/Sub
-      │
-Presence system
-      │
-Connection management
+```mermaid
+flowchart TD
+    LB{"Load Balancer"} --> WC["WebSocket cluster"]
+    WC --> RP[("Redis Pub/Sub")]
+    RP --> PS["Presence system"]
+    PS --> CM["Connection management"]
 ```
 
 would add substantial complexity.
@@ -2073,23 +1875,13 @@ This leads to an important engineering principle:
 
 When deciding whether polling is enough, ask:
 
-```text
-How quickly must updates appear?
-             │
-             ▼
-How frequently do updates occur?
-             │
-             ▼
-How many clients are involved?
-             │
-             ▼
-How expensive is each poll?
-             │
-             ▼
-Can the system tolerate stale data?
-             │
-             ▼
-Does the client need two-way communication?
+```mermaid
+flowchart TD
+    Q1["How quickly must updates appear?"] --> Q2["How frequently do updates occur?"]
+    Q2 --> Q3["How many clients are involved?"]
+    Q3 --> Q4["How expensive is each poll?"]
+    Q4 --> Q5["Can the system tolerate stale data?"]
+    Q5 --> Q6["Does the client need two-way communication?"]
 ```
 
 If:
@@ -2128,31 +1920,16 @@ When you see polling in a system, don't just think:
 
 Think about the entire path:
 
-```text
-Client
-   │
-   │ Poll
-   ▼
-Load Balancer
-   │
-   ▼
-Application Server
-   │
-   ├── Authentication
-   │
-   ├── Cache
-   │
-   └── Database
-   │
-   ▼
-Response
-   │
-   ▼
-Client
-   │
-   │ wait
-   │
-   └──────────────► Poll again
+```mermaid
+flowchart TD
+    C["Client"] -->|Poll| LB{"Load Balancer"}
+    LB --> AS["Application Server"]
+    AS -.-> Auth["Authentication"]
+    AS -.-> Cache[("Cache")]
+    AS -.-> DB[("Database")]
+    AS --> Res["Response"]
+    Res --> C
+    C -->|wait... Poll again| LB
 ```
 
 Then ask:
@@ -2167,32 +1944,14 @@ That is where system design begins.
 
 For long polling:
 
-```text
-Client
-   │
-   │ Long Poll
-   ▼
-Load Balancer
-   │
-   ▼
-Application Server
-   │
-   │
-   │ waiting for event
-   │
-   ▼
-Event Source / PubSub
-   │
-   │ event
-   ▼
-Application Server
-   │
-   ▼
-Client
-   │
-   │ reconnect
-   ▼
-Load Balancer
+```mermaid
+flowchart TD
+    C["Client"] -->|Long Poll| LB{"Load Balancer"}
+    LB --> AS["Application Server"]
+    AS -->|waiting for event| AS
+    ES[("Event Source / PubSub")] -->|event| AS
+    AS --> C
+    C -->|reconnect| LB
 ```
 
 Now the important questions become:
@@ -2215,40 +1974,27 @@ This distinction is worth remembering.
 
 ### Short polling
 
-```text
-Request
-   ↓
-Response
-   ↓
-Done
+```mermaid
+flowchart TD
+    Req["Request"] --> Res["Response"]
+    Res --> D["Done"]
 ```
 
 ### Long polling
 
-```text
-Request
-   ↓
-Wait
-   ↓
-Response
-   ↓
-Done
+```mermaid
+flowchart TD
+    Req["Request"] --> W["Wait"]
+    W --> Res["Response"]
+    Res --> D["Done"]
 ```
 
 ### WebSocket
 
-```text
-Connection
-   ↓
-Message
-   ↕
-Message
-   ↕
-Message
-   ↕
-Message
-   ↓
-Close
+```mermaid
+flowchart TD
+    C["Connection"] --> M["Messages"]
+    M --> CX["Close"]
 ```
 
 Long polling keeps an **HTTP request** alive.
@@ -2413,65 +2159,55 @@ Those are separate system-design concerns.
 
 The entire chapter can be reduced to this:
 
-```text
-                    Need Updates
-                         │
-                         ▼
-                Can client ask?
-                         │
-                         ▼
-                  Short Polling
-                         │
-                         │
-                  Too many empty
-                    responses?
-                         │
-                         ▼
-                  Long Polling
-                         │
-                         │
-                 Need continuous
-                    streaming?
-                         │
-                         ▼
-                  SSE / WebSocket
+```mermaid
+flowchart TD
+    N["Need Updates"] --> Q1["Can client ask?"]
+    Q1 --> SP["Short Polling"]
+    SP --> Q2["Too many empty responses?"]
+    Q2 --> LP["Long Polling"]
+    LP --> Q3["Need continuous streaming?"]
+    Q3 --> W["SSE / WebSocket"]
 ```
 
 And the evolution is:
 
-```text
-SHORT POLLING
+### Short Polling
 
-Client ──Request──► Server
-Client ◄─Response── Server
-       wait
-Client ──Request──► Server
-Client ◄─Response── Server
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: Request
+    Server-->>Client: Response
+    Note over Client: wait
+    Client->>Server: Request
+    Server-->>Client: Response
+```
 
+### Long Polling
 
-LONG POLLING
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: Request
+    Note over Server: wait...<br>event happens
+    Server-->>Client: Response
+    Note over Client: new request triggered immediately
+```
 
-Client ──Request────────────► Server
-                              │
-                              │ wait
-                              │
-                              │ event
-                              ▼
-Client ◄────Response───────── Server
-       │
-       │ new request
-       ▼
+### Persistent Connection
 
-
-PERSISTENT CONNECTION
-
-Client ◄────────────────────► Server
-       │       open           │
-       │◄──────event──────────│
-       │──────message────────►│
-       │◄──────event──────────│
-       │──────message────────►│
-       │       close          │
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Note over Client,Server: Connection Opened
+    Server->>Client: event
+    Client->>Server: message
+    Server->>Client: event
+    Client->>Server: message
+    Note over Client,Server: Connection Closed
 ```
 
 The important lesson is not:

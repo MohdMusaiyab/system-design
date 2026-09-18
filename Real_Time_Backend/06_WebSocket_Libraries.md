@@ -12,18 +12,17 @@ Understanding the difference between **abstraction** and **control** is critical
 
 The first decision when building a WebSocket backend is deciding what layer of abstraction you need.
 
-```text
-       High Abstraction (Frameworks)
-       e.g., Socket.IO, SignalR
-─────────────────────────────────────────────
-       Provides: Rooms, Auto-reconnect, 
-                 Fallbacks, Broadcasting
-─────────────────────────────────────────────
-       Low Abstraction (Protocol Libs)
-       e.g., ws (Node), gorilla (Go)
-─────────────────────────────────────────────
-       Provides: TCP sockets, Frames, 
-                 Ping/Pong, Masking
+```mermaid
+flowchart TD
+    subgraph High["High Abstraction (Frameworks)"]
+        H1["e.g., Socket.IO, SignalR"]
+        H2["Provides: Rooms, Auto-reconnect, Fallbacks, Broadcasting"]
+    end
+    subgraph Low["Low Abstraction (Protocol Libs)"]
+        L1["e.g., ws (Node), gorilla (Go)"]
+        L2["Provides: TCP sockets, Frames, Ping/Pong, Masking"]
+    end
+    High --> Low
 ```
 
 If you use a **low-level library**, you must write the logic for reconnecting dropped clients and managing "chat rooms." 
@@ -89,17 +88,15 @@ A highly focused, zero-allocation WebSocket library.
 
 When you choose a library, you are making a fundamental system design choice about memory usage per connection.
 
-```text
-Connection Memory Profile:
+**Connection Memory Profile:**
 
-1. Low Level (`ws`, `gobwas/ws`)
-   Memory used: Raw TCP socket + tiny buffer.
-   Impact: Can handle 1M+ connections on cheap hardware.
+1. **Low Level** (`ws`, `gobwas/ws`)
+   * **Memory used:** Raw TCP socket + tiny buffer.
+   * **Impact:** Can handle 1M+ connections on cheap hardware.
 
-2. High Level (`Socket.IO`)
-   Memory used: TCP socket + JSON Parsers + Room Arrays + Session Timers.
-   Impact: Heavier overhead. Usually caps out at much fewer connections per node.
-```
+2. **High Level** (`Socket.IO`)
+   * **Memory used:** TCP socket + JSON Parsers + Room Arrays + Session Timers.
+   * **Impact:** Heavier overhead. Usually caps out at much fewer connections per node.
 
 ### Framework Lock-in
 If you build your client in Flutter or Android, and your backend uses a proprietary framework like Socket.IO or SignalR (C#), you **must** find a compatible client library for that language. If none exists, you cannot communicate. 
@@ -116,14 +113,10 @@ If you build raw WebSockets, be prepared to build:
 To detect dead TCP connections (half-open connections where the user drove into a tunnel).
 
 **2. Client-Side Reconnect logic**
-```text
-Client Connection Dies
-   │
-   ▼
-Wait Random Backoff (e.g. 5 seconds)
-   │
-   ▼
-Attempt Reconnect
+```mermaid
+flowchart TD
+    CD["Client Connection Dies"] --> W["Wait Random Backoff<br>(e.g. 5 seconds)"]
+    W --> AR["Attempt Reconnect"]
 ```
 
 **3. State Management (Rooms)**
