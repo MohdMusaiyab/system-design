@@ -29,6 +29,7 @@ Currently, I am deep-diving into the following topics:
 
 - **[Fundamentals](Fundamentals/README.md):** The core building blocks of the internet (DNS, TCP/UDP, APIs, and the CAP Theorem).
 - **[Caching](Caching/README.md):** A deep dive into distributed caching (Redis/Memcached), architectural patterns, eviction policies, invalidation limits, and production failure modes.
+- **[Real-Time Backend](Real_Time_Backend/README.md):** An extensive guide on persistent connections from Polling and Server-Sent Events to WebSocket protocols, Redis Pub/Sub Backplanes, presence systems, and distributed scaling.
 - **[Scaling](Scaling/README.md):** Strategies for horizontal vs. vertical scaling, stateless architecture, and database replication/sharding.
 - **[Load Balancing](Load-Balancing/README.md):** Layer 4 vs. Layer 7 routing, routing algorithms, health checks, and failover mechanisms.
 

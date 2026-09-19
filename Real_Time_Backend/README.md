@@ -612,6 +612,8 @@ The recommended order is:
 12. [Real-Time Architecture](12_Real_Time_Architecture.md)
         ↓
 13. [Technology Trade-offs](13_Real_Time_Tradeoffs.md)
+        ↓
+14. [Glossary and Terminology](14_Glossary.md)
 
 This order intentionally goes from:
 
