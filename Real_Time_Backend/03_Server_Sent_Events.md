@@ -2119,8 +2119,4 @@ After that, we'll go one level deeper into the **WebSocket protocol itself—RFC
 
 ---
 
-⬅️ **[Back: Polling & Long Polling](02_Polling_And_Long_Polling.md)**
-
-➡️ **[Next: WebSocket Fundamentals](04_WebSockets_Fundamentals.md)**
-
-⬆️ **[Back to Real-Time Backend](README.md)**
+⬅️ **[Previous: 2. Polling and Long Polling](02_Polling_And_Long_Polling.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 4. WebSockets Fundamentals ➡️](04_WebSockets_Fundamentals.md)**

@@ -1261,8 +1261,4 @@ That chapter is where we stop treating WebSocket as a black box and understand *
 
 ---
 
-⬅️ **[Back: Server-Sent Events (SSE)](03_Server_Sent_Events.md)**
-
-➡️ **[Next: WebSocket Protocol Deep Dive](05_WebSocket_Protocol.md)**
-
-⬆️ **[Back to Real-Time Backend](README.md)**
+⬅️ **[Previous: 3. Server-Sent Events](03_Server_Sent_Events.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 5. WebSocket Protocol ➡️](05_WebSocket_Protocol.md)**

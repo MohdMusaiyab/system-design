@@ -2238,8 +2238,4 @@ We will answer:
 * How does SSE scale across multiple servers?
 * When is SSE enough, and when do we actually need WebSockets?
 
-⬅️ **[Back to Real-Time Backend](README.md)**
-
-⬅️ **[Previous: 1. Real-Time Fundamentals](01_Real_Time_Fundamentals.md)**
-
-➡️ **[Next: 3. Server-Sent Events](03_Server_Sent_Events.md)**
+⬅️ **[Previous: 1. Real-Time Fundamentals](01_Real_Time_Fundamentals.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 3. Server-Sent Events ➡️](03_Server_Sent_Events.md)**

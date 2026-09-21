@@ -29,9 +29,11 @@ A Client (the Consumer) is logged in via a slow 3G mobile network. They can only
 
 ```mermaid
 flowchart TD
-    S["Server (Producer)"] -->|10,000 msgs/sec| C["Client (Consumer)\nCan only handle 100/sec"]
-    style C fill:#f9cfcf,stroke:#ff0000
-    Note right of S: 9,900 messages pile up<br>in Server RAM every second!
+    S["Server (Producer)"] -->|10,000 msgs/sec| C["Client (Consumer)<br>Can only handle 100/sec"]
+    style C fill:#ffffff,stroke:#ff0000,color:#000000,stroke-width:2px
+    
+    N["Note: 9,900 messages pile up<br>in Server RAM every second!"]
+    S -.- N
 ```
 
 Where exactly do those extra 9,900 messages go? They begin to aggressively pile up in Server memory.
@@ -88,8 +90,8 @@ We enforce a **Bounded Buffer**.
 ```mermaid
 flowchart LR
     Redis -->|Msg 11| S["WebSocket Server"]
-    S --o|Buffer Full (MAX: 10)| B["Bounded Buffer"]
-    style B fill:#f9cfcf,stroke:#ff0000
+    S -->|Buffer Full MAX: 10| B["Bounded Buffer"]
+    style B fill:#ffffff,stroke:#ff0000,color:#000000,stroke-width:2px
 ```
 
 When Message #11 theoretically arrives, the server explicitly cannot add it to the buffer. It must execute a mitigation strategy.
@@ -104,7 +106,7 @@ If the bounded buffer is full, the most computationally cheap strategy is explic
 flowchart LR
     Msg11["Msg 11"] --> S{"Buffer Full?"}
     S -- YES --> D(("Drop Data"))
-    style D fill:#f9cfcf,stroke:#ff0000
+    style D fill:#ffffff,stroke:#ff0000,color:#000000,stroke-width:2px
 ```
 
 The client visibly misses data, but the Server's memory is perfectly protected. This is fiercely common in live-streaming or gaming where older data frames are inherently useless.
@@ -121,7 +123,7 @@ Instead of silently corrupting UI states, a robust server will simply kill the p
 flowchart LR
     Msg11["Msg 11"] --> S{"Buffer Full?"}
     S -- YES --> K(("Kill Socket"))
-    style K fill:#f9cfcf,stroke:#ff0000
+    style K fill:#ffffff,stroke:#ff0000,color:#000000,stroke-width:2px
 ```
 
 The server kicks the struggling client entirely offline. The client will trigger its automatic Exponential Backoff reconnect logic. Upon reconnecting cleanly, it uses standard REST APIs to download exactly what it missed.
@@ -136,12 +138,14 @@ Instead of utilizing a traditional list buffer, a server uses a **Latest-Value B
 ```mermaid
 flowchart TD
     subgraph Memory [Server RAM]
-    Var["Map: 'BTC' -> 60005"]
+        Var["Map: 'BTC' -> 60005"]
     end
     Redis -->|60001| Var
     Redis -->|60002| Var
     Redis -->|60005| Var
-    Note right of Var: O(1) Absolute Memory.<br>Value safely overwritten silently.
+    
+    N["Note: O(1) Absolute Memory.<br>Value safely overwritten silently."]
+    Var -.- N
 ```
 
 When the client TCP window finally clears, the server organically flushes the absolute latest value across the wire. Memory remains permanently flat regardless of network strain.
@@ -157,7 +161,7 @@ What about protecting the WebSocket Server from a blazing fast Redis Backplane? 
 ```mermaid
 flowchart LR
     Redis[("Redis Pub/Sub")] -->|1,000,000 msgs/sec| Server["WebSocket Node<br>(Crushing RAM!)"]
-    style Server fill:#f9cfcf,stroke:#ff0000
+    style Server fill:#ffffff,stroke:#ff0000,color:#000000,stroke-width:2px
 ```
 
 Redis Pub/Sub does not support upstream backpressure. It fiercely and blindly fires broadcasts at all local servers. 
@@ -178,6 +182,19 @@ flowchart TD
 ```
 
 If any isolated component securely in this chain stalls, the dominant layers above it must either strategically pause, drop data, or aggressively sever connections to gracefully protect the platform infrastructure.
+
+---
+
+# 10.10 Mitigation Strategy Comparison
+
+As a quick cheatsheet, here is how you decide which backpressure mitigation rule to enforce when designing your server logic:
+
+| Mitigation Strategy | Mechanism | Data Loss? | When to Use |
+| :--- | :--- | :--- | :--- |
+| **Bounded Buffers** | Imposes a strict element or byte limit on the in-memory array queue for each TCP socket. | Yes (If full) | **Always.** This is the foundational limit for all other mitigations. Never let buffers grow infinitely. |
+| **Dropping Messages** | Actively drops any incoming publisher events when the client's bounded buffer is organically full. | Yes | **Live-streaming, gaming position updates, or metrics.** Use when older data frames are instantly rendered useless by newer ones. |
+| **Terminating Connections** | Forcefully kicks the client offline immediately when the buffer reaches capacity. | No (Recoverable) | **Financial markets, critical chat delivery, transaction streaming.** Use when skipping or dropping a single message corrupts the core deterministic state. Client recovers data via a REST catch-up API upon reconnect. |
+| **Latest-Value Semantics** | Stores only the absolute newest value in an `O(1)` variable per topic, completely overriding the previous state. | Yes | **IoT sensor readings, stock tickers, status dashboards.** Use when historical sequence doesn't matter and exclusively the current true state is relevant. |
 
 ---
 

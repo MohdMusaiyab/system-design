@@ -33,7 +33,7 @@ But what if the client drops their phone in a lake?
 sequenceDiagram
     participant Client
     participant Server
-    Client--XServer: Phone destroyed off-grid
+    Client--xServer: Phone destroyed off-grid
     Note over Server: Server NEVER receives FIN.<br>Holds memory open FOREVER.
 ```
 
@@ -94,9 +94,9 @@ flowchart TD
     C["100,000 Clients"] -->|Attack Simultaneously| LB{"Load Balancer"}
     LB --> S1["Remaining Server 2"]
     LB --> S2["Remaining Server 3"]
-    style S1 fill:#f9cfcf,stroke:#ff0000
-    style S2 fill:#f9cfcf,stroke:#ff0000
-    style LB fill:#f9cfcf,stroke:#ff0000
+    style S1 fill:#ffffff,stroke:#ff0000,color:#000000,stroke-width:2px
+    style S2 fill:#ffffff,stroke:#ff0000,color:#000000,stroke-width:2px
+    style LB fill:#ffffff,stroke:#ff0000,color:#000000,stroke-width:2px
 ```
 
 A massive, instantaneous tsunami of SSL handshakes and Database Authentication queries slams into your remaining infrastructure at the exact same millisecond.

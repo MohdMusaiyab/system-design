@@ -433,8 +433,4 @@ flowchart TD
 
 ---
 
-⬅️ **[Back: WebSocket Fundamentals](04_WebSockets_Fundamentals.md)**
-
-➡️ **[Next: WebSocket Libraries](06_WebSocket_Libraries.md)**
-
-⬆️ **[Back to Real-Time Backend](README.md)**
+⬅️ **[Previous: 4. WebSockets Fundamentals](04_WebSockets_Fundamentals.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 6. WebSocket Libraries ➡️](06_WebSocket_Libraries.md)**

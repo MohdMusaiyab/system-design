@@ -91,7 +91,7 @@ What happens if the Server providing Alice's WebSocket connection violently cras
 ```mermaid
 flowchart LR
     Alice -->|WebSocket| S1["Server 1"]
-    style S1 fill:#f9cfcf,stroke:#ff0000,stroke-width:2px
+    style S1 fill:#ffffff,stroke:#ff0000,color:#000000,stroke-width:2px
     S1 -.->|Crash! Never tells Redis| Redis[(Redis)]
 ```
 
@@ -186,7 +186,7 @@ In Redis, instead of a simple string `SET`, we use a Hash (`HSET`) or a Set (`SA
 
 ```mermaid
 flowchart LR
-    Set[{"Redis Set: user:alice:connections"}]
+    Set["Redis Set: user:alice:connections"]
     Set --- L["laptop_socket_482"]
     Set --- P["phone_socket_912"]
 ```
@@ -224,6 +224,19 @@ flowchart TD
 ```
 
 This architecture brilliantly prevents ghost states and race conditions while seamlessly handling users with multiple simultaneous devices.
+
+---
+
+# 11.10 Presence Subsystems Summary
+
+To summarize the immense complexity required to simply display a "Green Dot", here is a cheat sheet of the subsystems involved:
+
+| Presence Problem | Mitigation Mechanism | Why It Works |
+| :--- | :--- | :--- |
+| **Silent TCP Drops (Half-Open Sockets)** | Protocol `Ping/Pong` Heartbeats | The server explicitly requests an answer from the client every 30s. If no Pong arrives, the server knows mathematically the socket is dead. |
+| **Server Crash Ghost States** | Redis `TTL` (Time-To-Live) Expiration | Even if the server explodes without running its disconnect logic, the central database naturally prunes the stale Presence record after X seconds without a heartbeat. |
+| **False-Offline from Multi-Device** | Redis `Sets` / Distinct Session Tracking | Tracking exact physical sockets instead of a boolean value ensures that terminating phone app doesn't accidentally log out the user's desktop browser status. |
+| **Thundering Herd Read/Write Load** | Primary Datastore Separation | Relying entirely on an in-memory datastore (Redis) handles the extreme volatility of presence metrics without burying the primary relational database (PostgreSQL) under 100K meaningless TCP-level updates. |
 
 ---
 

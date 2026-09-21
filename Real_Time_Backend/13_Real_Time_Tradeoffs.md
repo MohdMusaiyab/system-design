@@ -54,10 +54,10 @@ flowchart TD
     Q3 -- NO --> WS["WebSockets"]
     Q3 -- YES --> RTC["WebRTC"]
     
-    style P fill:#f9f,stroke:#333
-    style SSE fill:#bbf,stroke:#333
-    style WS fill:#bfb,stroke:#333
-    style RTC fill:#fbb,stroke:#333
+    style P fill:#ffffff,stroke:#aa00ff,color:#000000,stroke-width:2px
+    style SSE fill:#ffffff,stroke:#0000ff,color:#000000,stroke-width:2px
+    style WS fill:#ffffff,stroke:#00aa00,color:#000000,stroke-width:2px
+    style RTC fill:#ffffff,stroke:#ff5500,color:#000000,stroke-width:2px
 ```
 
 ---
@@ -114,4 +114,4 @@ You are actively engineering resilient, heavily buffered, highly available real-
 
 ---
 
-⬅️ **[Previous: 12. Real-Time Architecture](12_Real_Time_Architecture.md)** | 🏠 **[Back to TOC](README.md)**
+⬅️ **[Previous: 12. Real-Time Architecture](12_Real_Time_Architecture.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 14. Glossary and Terminology ➡️](14_Glossary.md)**

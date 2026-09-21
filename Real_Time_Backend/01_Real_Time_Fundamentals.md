@@ -1548,6 +1548,4 @@ The goal of this entire Real-Time Backend section is to understand **why each la
 
 ---
 
-⬅️ **[Back to Real-Time Backend](README.md)**
-
-➡️ **[Next: 2. Polling & Long Polling](02_Polling_And_Long_Polling.md)**
+🏠 **[Back to TOC](README.md)** | **[Next: 2. Polling and Long Polling ➡️](02_Polling_And_Long_Polling.md)**
