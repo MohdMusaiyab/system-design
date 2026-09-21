@@ -1348,7 +1348,7 @@ Imagine:
 flowchart TD
     C["Client"] --> S["Server A"]
     S -.->|long-poll request waiting| CR["Server crashes"]
-    style CR fill:#f9cfcf,stroke:#ff0000
+    style CR fill:#ffffff,stroke:#ff0000,color:#000000,stroke-width:2px
 ```
 
 The request disappears.

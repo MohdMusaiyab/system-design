@@ -535,7 +535,7 @@ Then the network breaks.
 ```mermaid
 flowchart TD
     C["Client"] -.->|received 101, 102<br>connection lost| X["Network"]
-    style X fill:#f9cfcf,stroke:#ff0000
+    style X fill:#ffffff,stroke:#ff0000,color:#000000,stroke-width:2px
 ```
 
 What about:
@@ -1225,8 +1225,8 @@ Even though SSE uses HTTP, the connection itself is long-lived.
 Therefore:
 
 ```mermaid
-flowchart TD
-    C["Client"] -->|SSE| SA["Server A"]
+flowchart LR
+    C["Client"] -->|SSE Connection| SA["Server A"]
 ```
 
 Server A maintains that connection.

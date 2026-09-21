@@ -709,7 +709,7 @@ The connection disappears:
 ```mermaid
 flowchart TD
     C["Client"] -.->|Disconnected| S["Server A"]
-    style S fill:#f9cfcf,stroke:#ff0000
+    style S fill:#ffffff,stroke:#ff0000,color:#000000,stroke-width:2px
 ```
 
 The client must reconnect.
@@ -739,7 +739,7 @@ Imagine:
 flowchart TD
     C["WebSocket server crashes"] --> D["50,000 clients disconnect"]
     D --> R["50,000 clients reconnect"]
-    style C fill:#f9cfcf,stroke:#ff0000
+    style C fill:#ffffff,stroke:#ff0000,color:#000000,stroke-width:2px
 ```
 
 If they all reconnect simultaneously:
