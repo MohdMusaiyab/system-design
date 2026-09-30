@@ -35,7 +35,36 @@ In **Client-Side Load Balancing**, the middleman is completely eliminated. The c
 
 To solve the complexity of Client-Side Load Balancing, modern architectures use a **Service Mesh** (like Istio or Linkerd).
 
-Instead of forcing developers to write Load Balancing logic in Java, Go, and Python, a Service Mesh deploys a tiny "Proxy" (like Envoy) running safely right next to every single microservice. The Microservice sends a dumb request to its local proxy, and the local proxy performs the complex Client-Side Load Balancing invisibly!
+Instead of forcing developers to write Load Balancing logic in Java, Go, and Python, a Service Mesh deploys a tiny "sidecar" proxy (like Envoy) running safely right next to every single microservice. The Microservice sends a dumb request to its local proxy (`localhost:8080`), and the local proxy invisibly performs the complex Client-Side Load Balancing and Service Discovery lookups.
+
+### Senior Developer Perspective: Architectural Flow
+
+```mermaid
+flowchart TD
+    %% Server-Side Flow
+    subgraph Server-Side Load Balancing
+    Client1[Client] -->|1. Requests| ALB[Central ALB]
+    ALB -->|2. Balances| S1[Service B Node 1]
+    ALB -->|2. Balances| S2[Service B Node 2]
+    end
+
+    %% Client-Side Flow
+    subgraph Client-Side Load Balancing
+    Client2[Client App] <-->|1. Syncs IPs| Reg[Service Registry]
+    Client2 -->|2. Direct Route| S3[Service B Node 1]
+    Client2 -->|2. Direct Route| S4[Service B Node 2]
+    end
+```
+
+### 19.4 Direct Comparison Matrix
+
+| Feature | Server-Side Load Balancing | Client-Side Load Balancing |
+| :--- | :--- | :--- |
+| **Network Hops** | 2 Hops (Client ➡️ LB ➡️ Server) | **1 Hop** (Client ➡️ Server) |
+| **Bottleneck Risk** | High (Central LB can choke under load) | **None** (Traffic is strictly point-to-point) |
+| **Client Code Complexity** | **Very Low** (Client is dumb) | Very High (Client must run LB algorithms) |
+| **Best Scenario to Use** | Exposing Public APIs to the Internet (Mobile Apps, Web Browsers). | Internal Microservice-to-Microservice backend communication. |
+| **Real-World Tech** | AWS ALB, NGINX, HAProxy. | gRPC, Netflix Ribbon, Istio/Envoy (Service Mesh). |
 
 ---
 

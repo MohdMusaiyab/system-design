@@ -61,6 +61,36 @@ Service Discovery and Load Balancing are two halves of the exact same puzzle.
 * **Load Balancing** answers: *"Which specific server from that exact list should process this single HTTP request?"*
 Without Discovery, Load Balancers have nowhere to route traffic. Without Load Balancers, Discovery lists are useless because clients wouldn't know how to intelligently distribute load between them.
 
+### Senior Developer Perspective: The Registration Flow
+Here is exactly how a modern microservice boots up and receives traffic:
+
+```mermaid
+sequenceDiagram
+    participant ASG as Auto Scaling Group
+    participant Srv as Payment Service (New)
+    participant Reg as Service Registry (Consul)
+    participant LB as Internal Load Balancer
+    
+    ASG->>Srv: 1. Boot up VM (IP: 10.0.5.99)
+    Srv->>Reg: 2. Dynamic Registration ("I am alive!")
+    Reg-->>Srv: 3. ACK 200 OK
+    loop Every 10 Seconds
+        Srv->>Reg: 4. Heartbeat Ping
+    end
+    Note over Reg,LB: LB constantly syncs with Registry
+    Reg->>LB: 5. Broadcast: "New Payment IP added"
+    LB->>Srv: 6. Begin routing live API traffic
+```
+
+### 18.9 Service Discovery Approaches Comparison
+
+| Discovery Type | Mechanism | Senior Dev Scenario (When to use?) | Critical Drawbacks |
+| :--- | :--- | :--- | :--- |
+| **Static (`/etc/hosts`)** | Manual config file updates. | Legacy bare-metal applications that never autoscale. | Impossible to maintain in dynamic Cloud/K8s environments. |
+| **DNS-Based** | `payment.internal` resolves to list of IPs. | Small to medium architectures. Use when simplicity heavily outweighs strict failover speed. | **Client DNS Caching** causes apps to hit dead IPs for minutes. |
+| **Client-Side Proxy** | Client directly queries `Consul/Eureka` and runs Round Robin. | Massive Microservice deployments aiming to kill central LB bottlenecks. | High coupling; requires complex SDKs in every language you use. |
+| **Server-Side API Gateway** | Client hits central ALB; ALB queries Registry and routes. | Standard Cloud deployments (AWS ALB/K8s Ingress). Great for polyglot systems. | Introduces an extra network hop and a central point of failure. |
+
 ---
 
 ⬅️ **[Previous: 17. Load Balancing & Resilience Patterns](17_Load_Balancing_Resilience_Patterns.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 19. Client-Side vs Server-Side Load Balancing ➡️](19_Client_Side_vs_Server_Side_Load_Balancing.md)**
