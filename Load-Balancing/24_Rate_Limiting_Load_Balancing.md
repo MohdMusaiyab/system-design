@@ -75,4 +75,6 @@ Instead of looking at a static clock minute (10:00 to 10:01), the Load Balancer 
 
 ---
 
-⬅️ **[Previous: 23. Load Balancing & Queues](23_Load_Balancing_Queues.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 25. CDN, WAF & Load Balancing ➡️](25_CDN_WAF_Load_Balancer.md)**
+---
+
+

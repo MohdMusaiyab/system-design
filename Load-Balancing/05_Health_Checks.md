@@ -1484,3 +1484,7 @@ B is returned to the traffic pool.
 17. The central trade-off is:
 
 > **Detect failures quickly without reacting too aggressively to temporary failures.**
+
+---
+
+

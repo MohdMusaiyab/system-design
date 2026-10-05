@@ -95,4 +95,6 @@ flowchart TD
 
 ---
 
-⬅️ **[Previous: 25. CDN, WAF & Load Balancing](25_CDN_WAF_Load_Balancer.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 27. Anycast & Global Traffic Distribution ➡️](27_Anycast_Global_Traffic_Distribution.md)**
+---
+
+

@@ -84,4 +84,6 @@ Scale up if the `SQS Queue Length > 5000 messages`. Used explicitly for scaling 
 
 ---
 
-⬅️ **[Previous: 14. Connection Draining & Graceful Shutdown](14_Connection_Draining_Graceful_Shutdown.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 16. Rate Limiting ➡️](16_Rate_Limiting.md)**
+---
+
+

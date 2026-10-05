@@ -343,3 +343,7 @@ The goal is not simply to add more load balancers, but to **remove meaningful fa
 - **State synchronization** can make failover easier when LBs maintain important state.
 - **Multi-AZ deployment** protects against entire availability-zone failures.
 - HA is a combination of **redundancy + failure detection + failover + appropriate architecture**.
+
+---
+
+

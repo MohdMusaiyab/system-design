@@ -13,10 +13,12 @@ We learned in Chapter 28 that the Load Balancer injects the `X-Forwarded-For` he
 
 **The Spoofing Attack:**
 Imagine you have an Admin dashboard that only allows requests from IP `10.0.0.5`. 
-If a hacker physically writes their own HTTP header `X-Forwarded-For: 10.0.0.5` and sends it to a poorly configured Load Balancer, the Load Balancer might blindly pass the hacker's fake header to the backend! The backend server reads the fake IP, thinks the hacker is an Admin, and grants them full access.
+If a hacker physically writes their own HTTP header `X-Forwarded-For: 10.0.0.5` using a tool like Postman or cURL, and sends it to a poorly configured Load Balancer, a catastrophic failure occurs. The Load Balancer looks at the hacker's fake header and statically *appends* to it (or completely trusts it), passing the hacker's fake header straight to the backend! The deeply internal backend server reads the fake IP, mathematically trusts it without question, assumes the hacker is the CEO connecting from the corporate Wifi, and grants them full Admin access to drop the database.
 
-**The Fix:**
-You absolutely must configure your Load Balancer (or WAF) to aggressively **strip and overwrite** any `X-Forwarded-For` headers provided by the client, strictly trusting only the IP address physically read from the actual TCP socket connection.
+**The Architectural Fix (Trusted Proxies):**
+You absolutely must configure your Load Balancer (or WAF) to aggressively **strip and overwrite** any `X-Forwarded-For` headers provided by the wild internet. The Load Balancer must violently drop the User's fake header, and explicitly mathematically read the raw IP address directly from the underlying physical TCP Socket connection (which cannot be faked). 
+
+Furthermore, your Backend API servers must be configured with a strict whitelist of **"Trusted Proxies"**. The Backend Server code must explicitly say: *"Only trust the `X-Forwarded-For` header if the machine physically sending me this HTTP packet is the internal Load Balancer IP `10.0.1.55`. If anyone else sends me this header, reject it."*
 
 ## 29.3 Public vs Private (Internal) Load Balancers
 
@@ -32,4 +34,6 @@ By using Internal LBs, your crucial Backend API servers are mathematically shiel
 
 ---
 
-⬅️ **[Previous: 28. Observability & Logging](28_Observability.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 30. Load Balancing Databases ➡️](30_Load_Balancing_Databases.md)**
+---
+
+

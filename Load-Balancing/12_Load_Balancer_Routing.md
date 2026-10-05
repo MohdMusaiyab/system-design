@@ -121,4 +121,6 @@ This elegantly allows massive engineering teams to aggressively deploy entirely 
 
 ---
 
-⬅️ **[Previous: 11. TLS & SSL at Load Balancer](11_TLS_SSL_at_Load_Balancer.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 13. Failure Handling ➡️](13_Failure_Handling.md)**
+---
+
+

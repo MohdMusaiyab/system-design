@@ -62,4 +62,6 @@ We fix this structurally using **Cache Purging**:
 
 ---
 
-⬅️ **[Previous: 20. Consistent Hashing](20_Consistent_Hashing.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 22. Load Balancing WebSockets ➡️](22_Load_Balancing_WebSockets.md)**
+---
+
+

@@ -93,4 +93,6 @@ sequenceDiagram
 
 ---
 
-⬅️ **[Previous: 17. Load Balancing & Resilience Patterns](17_Load_Balancing_Resilience_Patterns.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 19. Client-Side vs Server-Side Load Balancing ➡️](19_Client_Side_vs_Server_Side_Load_Balancing.md)**
+---
+
+

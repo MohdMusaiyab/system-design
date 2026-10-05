@@ -107,4 +107,6 @@ These are fundamentally just dynamically managed clusters of underlying Software
 
 ---
 
-⬅️ **[Previous: 2. Load Balancer Architecture](02_Load_Balancer_Architecture.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 4. Load Balancing Algorithms ➡️](04_Load_Balancing_Algorithms.md)**
+---
+
+

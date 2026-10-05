@@ -97,5 +97,7 @@ A **Cascading Failure** is the ultimate architectural nightmare where the failur
 *Load Balancers are the silent guardians of distributed systems. By anticipating failures—from hard crashes to cascading network collapses—they transform inherently fragile hardware into resilient, self-healing platforms.*
  
  ---
- 
- ⬅️ **[Previous: 12. Load Balancer Routing](12_Load_Balancer_Routing.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 14. Connection Draining & Graceful Shutdown ➡️](14_Connection_Draining_Graceful_Shutdown.md)**
+
+---
+
+

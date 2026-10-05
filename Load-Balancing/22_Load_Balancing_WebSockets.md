@@ -73,4 +73,6 @@ You cannot scale down (Scale-In) WebSockets gracefully. If the Auto Scaling Grou
 
 ---
 
-⬅️ **[Previous: 21. Load Balancing & Caching](21_Load_Balancing_Caching.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 23. Load Balancing & Queues ➡️](23_Load_Balancing_Queues.md)**
+---
+
+

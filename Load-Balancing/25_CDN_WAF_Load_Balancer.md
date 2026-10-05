@@ -66,4 +66,6 @@ flowchart LR
 
 ---
 
-⬅️ **[Previous: 24. Rate Limiting Load Balancing](24_Rate_Limiting_Load_Balancing.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 26. Global Server Load Balancing (GSLB) ➡️](26_Global_Server_Load_Balancing_GSLB_.md)**
+---
+
+

@@ -117,4 +117,6 @@ When manually intimately configuring timeouts safely on your Load Balancer (NGIN
 
 ---
 
-⬅️ **[Previous: 7. Connections & Traffic Flow](07_Connections_Traffic_Flow.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 9. Session Management ➡️](09_Session_Management.md)**
+---
+
+

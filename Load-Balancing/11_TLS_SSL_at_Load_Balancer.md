@@ -97,4 +97,6 @@ The Load Balancer demands a cryptographic certificate from the Client before it 
 
 ---
 
-⬅️ **[Previous: 10. Reverse Proxy](10_Reverse_Proxy.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 12. Load Balancer Routing ➡️](12_Load_Balancer_Routing.md)**
+---
+
+

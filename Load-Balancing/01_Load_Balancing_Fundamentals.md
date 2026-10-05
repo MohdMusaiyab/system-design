@@ -98,4 +98,6 @@ Often (especially tightly in Kubernetes), they are heavily bundled together nati
 
 ---
 
-🏠 **[Back to TOC](README.md)** | **[Next: 2. Load Balancer Architecture ➡️](02_Load_Balancer_Architecture.md)**
+---
+
+

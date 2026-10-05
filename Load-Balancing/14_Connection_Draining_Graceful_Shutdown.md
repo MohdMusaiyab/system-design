@@ -78,4 +78,6 @@ A **Blue-Green Deployment** is massively safer for critical banking or medical a
 
 ---
 
-⬅️ **[Previous: 13. Failure Handling](13_Failure_Handling.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 15. Load Balancing & Autoscaling ➡️](15_Load_Balancing_Autoscaling.md)**
+---
+
+

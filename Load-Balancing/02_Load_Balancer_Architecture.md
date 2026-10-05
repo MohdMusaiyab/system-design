@@ -108,4 +108,6 @@ Engineering leadership aggressively faces a critical build-vs-buy decision for t
 
 ---
 
-⬅️ **[Previous: 1. Load Balancing Fundamentals](01_Load_Balancing_Fundamentals.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 3. Types of Load Balancing ➡️](03_Types_of_Load_Balancing.md)**
+---
+
+

@@ -85,4 +85,6 @@ You must intentionally align your Frontend UI Timeouts to comfortably exceed you
 
 ---
 
-⬅️ **[Previous: 15. Load Balancing & Autoscaling](15_Load_Balancing_Autoscaling.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 17. Load Balancing & Resilience Patterns ➡️](17_Load_Balancing_Resilience_Patterns.md)**
+---
+
+

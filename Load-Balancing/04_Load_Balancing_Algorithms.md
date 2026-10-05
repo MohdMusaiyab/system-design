@@ -1566,4 +1566,6 @@ It is:
 
 ---
 
-⬅️ **[Previous: 3. Types of Load Balancing](03_Types_of_Load_Balancing.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 5. Health Checks ➡️](05_Health_Checks.md)**
+---
+
+

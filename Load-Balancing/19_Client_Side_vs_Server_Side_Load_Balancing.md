@@ -68,4 +68,6 @@ flowchart TD
 
 ---
 
-⬅️ **[Previous: 18. Service Discovery](18_Service_Discovery.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 20. Consistent Hashing ➡️](20_Consistent_Hashing.md)**
+---
+
+

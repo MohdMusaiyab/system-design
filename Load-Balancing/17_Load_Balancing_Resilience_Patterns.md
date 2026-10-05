@@ -96,4 +96,6 @@ The entire point of intelligent Load Balancing is to physically prevent this. By
 
 ---
 
-⬅️ **[Previous: 16. Retries & Load Balancing](16_Retries_Load_Balancing.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 18. Service Discovery ➡️](18_Service_Discovery.md)**
+---
+
+

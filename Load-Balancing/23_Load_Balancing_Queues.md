@@ -772,3 +772,7 @@ Work Distribution + Buffering
 ```
 
 > **Load balancer distributes requests. Queue distributes work.**
+
+---
+
+

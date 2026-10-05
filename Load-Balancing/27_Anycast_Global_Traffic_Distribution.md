@@ -22,7 +22,13 @@ The secret is **BGP (Border Gateway Protocol)**. BGP is the postal system of the
 When Cloudflare sets up a CDN node in Tokyo, it broadcasts a BGP message to all ISPs in Asia: *"Hey! If anyone is looking for the IP `1.1.1.1`, I am right here."*
 Simultaneously, Cloudflare sets up a node in London and broadcasts: *"Hey ISPs! I am also `1.1.1.1`, and I am right here!"*
 
-When a user in Paris types in `1.1.1.1`, their physical router looks at its BGP Map. It sees two paths to `1.1.1.1` (Tokyo and London). The router executes **Nearest-Point Routing**—it structurally calculates that London requires fewer "network hops" (routers to pass through), and blindly sends the packet to London. 
+When a user in Paris types in `1.1.1.1`, their physical router looks at its BGP Map. It sees two paths to `1.1.1.1` (Tokyo and London). The router executes **Nearest-Point Routing**. 
+
+**How Nearest-Point Routing actually calculates the path:**
+BGP uses a metric called `AS_PATH` (Autonomous System Path). An Autonomous System (AS) is a massive network (like AT&T or Comcast). 
+*   If the packet goes to Tokyo, the BGP map shows it must pass through 14 different ISP networks (14 hops). 
+*   If the packet goes to London, the BGP map shows it only passes through 3 ISP networks (3 hops).
+*   The router completely ignores latency and strictly chooses the path with the fewest AS hops. It blindly and instantly shoots the packet toward London!
 
 The Tokyo server and the London server are completely unaware of each other. The physical **Internet Routers** are doing the load balancing!
 
@@ -66,8 +72,8 @@ flowchart TD
     ISP_Paris -->|BGP Shortest Path| London
     ISP_Moscow -->|BGP Shortest Path| Moscow
     
-    style ISP_Paris fill:#e1bee7,stroke:#333
-    style ISP_Moscow fill:#e1bee7,stroke:#333
+    style ISP_Paris fill:#e1bee7,stroke:#333,color:#000
+    style ISP_Moscow fill:#e1bee7,stroke:#333,color:#000
     style London fill:#87CEEB,stroke:#333,color:#000
     style Moscow fill:#87CEEB,stroke:#333,color:#000
 ```
@@ -84,4 +90,6 @@ flowchart TD
 
 ---
 
-⬅️ **[Previous: 26. Global Server Load Balancing](26_Global_Server_Load_Balancing_GSLB_.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 28. Observability & Logging ➡️](28_Observability.md)**
+---
+
+

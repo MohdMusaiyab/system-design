@@ -70,7 +70,7 @@ flowchart TD
     Primary -.->|Asynchronous Replication| Replica1
     Primary -.->|Asynchronous Replication| Replica2
     
-    style Pooler fill:#ffb74d,stroke:#333
+    style Pooler fill:#ffb74d,stroke:#333,color:#000
     style Primary fill:#ef5350,stroke:#333,color:#fff
     style Replica1 fill:#81c784,stroke:#333,color:#000
     style Replica2 fill:#81c784,stroke:#333,color:#000
@@ -89,4 +89,6 @@ flowchart TD
 
 ---
 
-⬅️ **[Previous: 29. Security](29_Security.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 31. Zero Downtime Deployments ➡️](31_Zero_Downtime_Deployments.md)**
+---
+
+

@@ -90,4 +90,6 @@ Consistent Hashing isn't just theory; it dynamically powers the internet.
 
 ---
 
-⬅️ **[Previous: 19. Client-Side vs Server-Side Load Balancing](19_Client_Side_vs_Server_Side_Load_Balancing.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 21. Load Balancing & Caching ➡️](21_Load_Balancing_Caching.md)**
+---
+
+
