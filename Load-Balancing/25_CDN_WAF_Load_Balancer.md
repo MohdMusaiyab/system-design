@@ -49,9 +49,9 @@ flowchart LR
     LB -->|Algorithm Router| S2[App Server B]
     end
     
-    style LB fill:#f9f,stroke:#333,stroke-width:2px
-    style WAF fill:#ff726f,stroke:#333,stroke-width:2px
-    style CDN fill:#87CEEB,stroke:#333,stroke-width:2px
+    style LB fill:#f9f,stroke:#333,stroke-width:2px,color:#000
+    style WAF fill:#ff726f,stroke:#333,stroke-width:2px,color:#000
+    style CDN fill:#87CEEB,stroke:#333,stroke-width:2px,color:#000
 ```
 
 ---
