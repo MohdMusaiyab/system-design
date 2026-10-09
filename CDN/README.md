@@ -36,6 +36,10 @@ Each chapter extensively covers core mechanics, deep-dive architectural paradigm
 *   **Disaster Prevention:** Solving the notorious Cache Stampede under extreme viral traffic spikes.
 *   **The Master Class:** Mega System Design Case Studies featuring extreme scaling architectures (Netflix, Twitch, Amazon).
 
+### 6. [Important Findings & Metric Summary](06_Important_Findings_and_Summary.md)
+*   Flash-summary of all ultimate Edge mechanisms (Anycast, DCA, Token Auth, Origin Shielding).
+*   Industry standard numerical limits and cost metrics (Egress Tax pricing, exact milliseconds for Edge Latencies).
+
 ---
 
 _Curriculum mapped for Senior Software Engineering standards._

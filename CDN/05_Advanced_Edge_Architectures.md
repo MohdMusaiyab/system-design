@@ -107,4 +107,4 @@ Twitch partners intensely with providers like Fastly explicitly because Fastly p
 
 ---
 
-⬅️ **[Previous: 4. Edge Routing & Security](04_Edge_Routing_and_Security.md)** | 🏠 **[Back to TOC](README.md)** | 🏁 **END OF CDN CURRICULUM**
+⬅️ **[Previous: 4. Edge Routing & Security](04_Edge_Routing_and_Security.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 6. Important Findings & Summary ➡️](06_Important_Findings_and_Summary.md)**
