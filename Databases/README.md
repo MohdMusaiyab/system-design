@@ -4,7 +4,12 @@ Welcome to the **Databases** master module. Understanding how data is structural
 
 In this directory, we dive deeply into the internal architectures, B-Tree vs LSM-Tree storage engines, ACID compliance mechanisms, and specific use-cases of the industry's most popular databases.
 
-## 📖 Database Architectures Explored
+## 📖 Curriculum
+
+1.  **[Database Fundamentals](01_Database_Fundamentals.md):** What is a DB/DBMS, three-tier database architecture, storage engines, SQL vs NoSQL, OLTP vs OLAP, and workload-based database selection.
+2.  **[Data Modeling & Schema Design](02_Data_Modeling_And_Schema_Design.md):** Entities and relationships, keys, constraints, 1NF/2NF/3NF normalization, denormalization trade-offs, zero-downtime migrations, and audit patterns.
+
+## 🗄️ Database Architectures Explored
 
 ### 1. Relational (SQL) Databases
 *   **[PostgreSQL](PostgreSQL/README.md):** The world's most advanced open-source relational database. Deep dives into MVCC, Write-Ahead Logs (WAL), and complex joins.
