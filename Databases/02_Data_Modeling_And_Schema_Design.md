@@ -452,4 +452,4 @@ Before shipping a database schema to production, review this senior engineer che
 
 ---
 
-⬅️ **[Previous: 1. Database Fundamentals](01_Database_Fundamentals.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 3. Storage Engines & On-Disk Structures ➡️](03_Storage_Engines_And_On_Disk_Structures.md)**
+⬅️ **[Previous: 1. Database Fundamentals](01_Database_Fundamentals.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 3. Database Internals ➡️](03_Database_Internals.md)**

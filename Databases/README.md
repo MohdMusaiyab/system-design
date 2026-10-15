@@ -8,6 +8,8 @@ In this directory, we dive deeply into the internal architectures, B-Tree vs LSM
 
 1.  **[Database Fundamentals](01_Database_Fundamentals.md):** What is a DB/DBMS, three-tier database architecture, storage engines, SQL vs NoSQL, OLTP vs OLAP, and workload-based database selection.
 2.  **[Data Modeling & Schema Design](02_Data_Modeling_And_Schema_Design.md):** Entities and relationships, keys, constraints, 1NF/2NF/3NF normalization, denormalization trade-offs, zero-downtime migrations, and audit patterns.
+3.  **[Database Internals](03_Database_Internals.md):** On-disk pages and slotted storage, buffer pool management (LRU vs CLOCK), B+ Trees, WAL, checkpoints and dirty pages, process architecture, and the read vs. write paths.
+4.  **[Transactions & ACID](04_Transactions_And_ACID.md):** Atomicity to Durability, transaction lifecycles, SQL isolation levels, Dirty/Non-Repeatable/Phantom reads, Lost Updates, Write Skew, PCC vs. OCC, MVCC mechanics, deadlocks, and long-running transaction mitigation.
 
 ## 🗄️ Database Architectures Explored
 
