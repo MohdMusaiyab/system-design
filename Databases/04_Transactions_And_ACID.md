@@ -437,5 +437,5 @@ Before deploying code that touches database transactions, review this checklist:
 
 ---
 
-⬅️ **[Previous: 3. Database Internals](03_Database_Internals.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 5. Indexing & Query Optimization ➡️](05_Indexing_And_Query_Optimization.md)**
+⬅️ **[Previous: 3. Database Internals](03_Database_Internals.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 5. Database Concurrency & Locking ➡️](05_Database_Concurrency_And_Locking.md)**
 
