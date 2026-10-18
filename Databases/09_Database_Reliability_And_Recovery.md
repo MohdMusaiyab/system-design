@@ -92,15 +92,15 @@ Consider this real-world production disaster scenario:
 
 ```mermaid
 sequenceDiagram
-    participant Dev as Junior Developer / Buggy Script
+    participant Dev as Buggy Script or Developer
     participant Primary as Primary Database Node
     participant Replica as Live Synchronous Read Replica
 
-    Dev->>Primary: DROP TABLE customer_payments; (Accidental query!)
+    Dev->>Primary: DROP TABLE customer_payments (Accidental query)
     Note over Primary: Primary drops table in 0.002s
-    Primary->>Replica: WAL Stream: "Drop customer_payments"
-    Note over Replica: Replica executes drop in 0.002s!
-    Note over Primary,Replica: BOTH COPIES ARE INSTANTLY DESTROYED!
+    Primary->>Replica: WAL Stream: Drop customer_payments
+    Note over Replica: Replica executes drop in 0.002s
+    Note over Primary,Replica: Both database copies are instantly destroyed!
 ```
 
 ### Why Replication Does Not Protect You:
@@ -255,21 +255,20 @@ When the primary hardware physically burns or loses network connectivity, the cl
 
 ```mermaid
 flowchart TD
-    subgraph Consensus["Distributed Consensus Tier (3 Nodes)"]
-        Consul1["etcd / Consul Node 1"]
-        Consul2["etcd / Consul Node 2"]
-        Consul3["etcd / Consul Node 3"]
+    subgraph Consensus["Distributed Consensus Tier (3-Node Raft Quorum)"]
+        ConsulNode["Consensus Leader<br/>(etcd / Consul)"]
     end
 
     subgraph Cluster["Database Cluster"]
-        Primary["Primary (Leader)<br/>- Holds Lease in etcd"]
-        Replica1["Standby Replica 1<br/>(Lag: 0 bytes)"]
-        Replica2["Standby Replica 2<br/>(Lag: 12 KB)"]
+        Primary["Primary Leader<br/>Holds Lease in etcd"]
+        Replica1["Standby Replica 1<br/>Lag: 0 bytes"]
+        Replica2["Standby Replica 2<br/>Lag: 12 KB"]
     end
 
-    Primary <-->|Heartbeat Lease (every 1s)| Consensus
-    Replica1 <-->|Monitors Lease| Consensus
-    Replica2 <-->|Monitors Lease| Consensus
+    Primary -->|"Heartbeat Lease Renewal (every 1s)"| ConsulNode
+    ConsulNode -.->|"Lease OK"| Primary
+    Replica1 -->|"Watches Lease TTL"| ConsulNode
+    Replica2 -->|"Watches Lease TTL"| ConsulNode
 ```
 
 ### The Orchestration Lifecycle (e.g. Patroni / Raft):
@@ -320,25 +319,20 @@ Reliability engineering requires categorizing failures by **Blast Radius**:
 
 ```mermaid
 flowchart TD
-    subgraph Region["Primary Cloud Region (e.g. us-east-1)"]
-        subgraph AZ1["Availability Zone A"]
-            P["Primary DB Node"]
-        end
-        subgraph AZ2["Availability Zone B"]
-            R_AZ["Sync Standby Replica<br/>(RPO = 0, RTO < 30s)"]
-        end
+    subgraph PrimaryRegion["Primary Cloud Region (us-east-1)"]
+        P["Primary DB Node<br/>(Availability Zone A)"]
+        R_AZ["Sync Standby Replica<br/>(Availability Zone B)<br/>RPO: 0, RTO: under 30s"]
     end
 
-    subgraph RemoteRegion["DR Cloud Region (e.g. us-west-2)"]
-        subgraph AZ3["Availability Zone C"]
-            R_DR["Async Cross-Region Standby<br/>(RPO < 5s, RTO < 10m)"]
-        end
+    subgraph DisasterRegion["DR Cloud Region (us-west-2)"]
+        R_DR["Async Standby Replica<br/>(Availability Zone C)<br/>RPO: under 5s, RTO: under 10m"]
         S3["Cold Backup Vault (S3)<br/>Cross-Region Replication"]
     end
 
-    P <-->|Synchronous Replication (Fast LAN)| R_AZ
-    P -.->|Async WAN Replication| R_DR
-    P -.->|Continuous WAL Archiving| S3
+    P -->|"Sync Replication (Fast LAN)"| R_AZ
+    R_AZ -->|"Ack Commit"| P
+    P -.->|"Async WAN Replication"| R_DR
+    P -.->|"Continuous WAL Archiving"| S3
 ```
 
 ### The Architectural Golden Rule:

@@ -172,18 +172,18 @@ sequenceDiagram
     participant DB as Database (Initial Balance: $100)
     participant UserB as Thread B (Withdraw $40)
 
-    UserA->>DB: SELECT balance FROM accounts WHERE id = 1;
+    UserA->>DB: SELECT balance FROM accounts WHERE id = 1
     DB-->>UserA: Returns $100
-    UserB->>DB: SELECT balance FROM accounts WHERE id = 1;
+    UserB->>DB: SELECT balance FROM accounts WHERE id = 1
     DB-->>UserB: Returns $100
 
     Note over UserA: Calculates 100 - 30 = $70
     Note over UserB: Calculates 100 - 40 = $60
 
-    UserA->>DB: UPDATE accounts SET balance = 70 WHERE id = 1;
+    UserA->>DB: UPDATE accounts SET balance = 70 WHERE id = 1
     DB-->>UserA: OK (Balance is now $70)
 
-    UserB->>DB: UPDATE accounts SET balance = 60 WHERE id = 1;
+    UserB->>DB: UPDATE accounts SET balance = 60 WHERE id = 1
     DB-->>UserB: OK (Balance is now $60!)
 ```
 
@@ -412,8 +412,10 @@ flowchart TD
 
     Client --> Gateway
     Gateway --> Service
-    Service -.->|Idempotency Check| DistLock
-    Service --> DBLayer
+    Service -.->|"Idempotency Check"| DistLock
+    Service --> Atomic
+    Service --> OCC
+    Service --> PCC
 ```
 
 ### Concurrency Strategy Decision Flow

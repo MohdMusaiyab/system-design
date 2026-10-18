@@ -120,9 +120,12 @@ flowchart LR
         Worker["8 - 16 Active DB Processes"]
     end
 
-    AppServers -->|Hundreds of requests| Queue
+    A1 -->|"Queries"| Queue
+    A2 -->|"Queries"| Queue
+    A3 -->|"Queries"| Queue
     Queue --> Pool
-    Pool <-->|Fixed 30 Connections| DB
+    Pool -->|"30 Persistent Connections"| Worker
+    Worker -->|"Query Results"| Pool
 ```
 
 ### Types of Pooling

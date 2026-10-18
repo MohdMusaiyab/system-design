@@ -106,7 +106,7 @@ sequenceDiagram
     participant Primary
     participant Replica
 
-    Client->>Primary: 1. UPDATE balance SET amount = 500;
+    Client->>Primary: 1. UPDATE balance SET amount = 500
     Primary->>Primary: 2. Write to local WAL & fsync()
     Primary-->>Client: 3. COMMIT SUCCESSFUL (Immediate!)
     Note over Primary,Replica: Network delay / Background stream
@@ -129,7 +129,7 @@ sequenceDiagram
     participant Primary
     participant Replica
 
-    Client->>Primary: 1. UPDATE balance SET amount = 500;
+    Client->>Primary: 1. UPDATE balance SET amount = 500
     Primary->>Primary: 2. Write to local WAL
     Primary->>Replica: 3. Send WAL record over network
     Replica->>Replica: 4. Write to local WAL & fsync()
@@ -230,8 +230,8 @@ A database proxy (such as **ProxySQL** for MySQL or **pgpool-II** for PostgreSQL
 ```mermaid
 flowchart LR
     App["Application (Single DB URL)"] --> Proxy["Database Proxy (ProxySQL / Pgpool)"]
-    Proxy -->|Parses SQL: INSERT/UPDATE| Primary["Primary Node"]
-    Proxy -->|Parses SQL: SELECT| LB["Replica Load Balancer"]
+    Proxy -->|"Parses SQL: INSERT/UPDATE"| Primary["Primary Node"]
+    Proxy -->|"Parses SQL: SELECT"| LB["Replica Load Balancer"]
     LB --> R1["Replica 1"]
     LB --> R2["Replica 2"]
 ```

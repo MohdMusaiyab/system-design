@@ -392,7 +392,7 @@ sequenceDiagram
     participant WAL as Write-Ahead Log (Disk File)
     participant DataFile as Data File on Disk
 
-    Client->>Engine: UPDATE balance SET amount = 400 WHERE id = 1;
+    Client->>Engine: UPDATE balance SET amount = 400 WHERE id = 1
     Engine->>RAM: Modify Page 12 in RAM (Page 12 becomes DIRTY)
     Engine->>WAL: Append Change Record (Fast Sequential Write)
     Engine->>WAL: fsync() Log File
@@ -420,27 +420,18 @@ To prevent this, a background process called the **Checkpointer** runs periodica
 ```mermaid
 flowchart TD
     subgraph Trigger["Checkpoint Trigger"]
-        T1["Time interval reached (e.g., 5 min)"]
-        T2["WAL size threshold reached (e.g., 1 GB)"]
+        T1["Time interval reached (e.g. 5 min)"]
+        T2["WAL threshold reached (e.g. 1 GB)"]
     end
 
-    subgraph Step1["Step 1: Identify"]
-        S1["Identify all current Dirty Pages in Buffer Pool"]
-    end
+    S1["Step 1: Identify all Dirty Pages in Buffer Pool"]
+    S2["Step 2: Flush and fsync() Dirty Pages to Disk"]
+    S3["Step 3: Write CHECKPOINT record to WAL with LSN"]
+    S4["Step 4: Prune/recycle WAL segments older than Checkpoint LSN"]
 
-    subgraph Step2["Step 2: Flush"]
-        S2["Flush and fsync() Dirty Pages into Table Heap Files"]
-    end
-
-    subgraph Step3["Step 3: Mark Safe Point"]
-        S3["Write a special CHECKPOINT record to WAL with current LSN"]
-    end
-
-    subgraph Step4["Step 4: Prune"]
-        S4["Safely delete or recycle WAL segments older than Checkpoint LSN"]
-    end
-
-    Trigger --> Step1 --> Step2 --> Step3 --> Step4
+    T1 --> S1
+    T2 --> S1
+    S1 --> S2 --> S3 --> S4
 ```
 
 ### Crash Recovery: The ARIES Algorithm

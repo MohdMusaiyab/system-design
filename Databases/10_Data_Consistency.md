@@ -68,10 +68,10 @@ sequenceDiagram
     participant Primary as Primary Node
     participant Replica as Lagging Replica
 
-    User->>Primary: 1. UPDATE profile SET name = 'Alicia';
+    User->>Primary: 1. UPDATE profile SET name = 'Alicia'
     Primary-->>User: 2. OK (Write Saved)
     Note over User: Subsequent Read within 5 seconds...
-    User->>Primary: 3. SELECT name FROM profile; (Sticky Route to Primary)
+    User->>Primary: 3. SELECT name FROM profile (Sticky Route to Primary)
     Primary-->>User: 4. Returns 'Alicia' (Consistent!)
     Note over Replica: Other users reading from Replica still see 'Alice' temporarily
 ```
@@ -173,9 +173,9 @@ Services communicate asynchronously via a message broker (e.g., Apache Kafka or 
 
 ```mermaid
 flowchart LR
-    OrderSvc["1. Order Service<br/>(Create Order)"] -->|Event: OrderCreated| PaySvc["2. Payment Service<br/>(Deduct Balance)"]
-    PaySvc -->|Event: PaymentSuccess| InvSvc["3. Inventory Service<br/>(Reserve Item)"]
-    InvSvc -->|Event: StockReserved| OrderSvc2["4. Order Service<br/>(Mark Confirmed)"]
+    OrderSvc["1. Order Service<br/>(Create Order)"] -->|"Event: OrderCreated"| PaySvc["2. Payment Service<br/>(Deduct Balance)"]
+    PaySvc -->|"Event: PaymentSuccess"| InvSvc["3. Inventory Service<br/>(Reserve Item)"]
+    InvSvc -->|"Event: StockReserved"| OrderSvc2["4. Order Service<br/>(Mark Confirmed)"]
 ```
 * **Pros:** Simple for small flows (2–3 steps); loosely coupled.
 * **Cons:** Becomes a cyclic dependency nightmare ("event spaghetti") as workflows expand to 10+ services.
@@ -261,8 +261,8 @@ flowchart TD
     end
 
     subgraph DB["Relational Database (Single ACID TX)"]
-        OrderTable["1. Orders Table<br/>(INSERT order record)"]
-        OutboxTable["2. Outbox Table<br/>(INSERT event payload)"]
+        OrderTable["1. Orders Table<br/>INSERT order record"]
+        OutboxTable["2. Outbox Table<br/>INSERT event payload"]
     end
 
     subgraph Relay["CDC / Message Relay Worker"]
@@ -273,10 +273,10 @@ flowchart TD
         Kafka["Apache Kafka / RabbitMQ"]
     end
 
-    API -->|Single BEGIN / COMMIT| DB
-    OrderTable -.-> OutboxTable
-    DB -->|Reads WAL / Polling| Debezium
-    Debezium -->|Publishes Safely| Kafka
+    API -->|"Single Atomic Commit"| OrderTable
+    API -->|"Single Atomic Commit"| OutboxTable
+    OutboxTable -->|"Reads WAL / Polls"| Debezium
+    Debezium -->|"Publishes Safely"| Kafka
 ```
 
 ### How it Works:
@@ -323,23 +323,23 @@ To make non-idempotent operations safe over unreliable networks, backend systems
 ```mermaid
 sequenceDiagram
     participant Client
-    participant API as API Gateway / Backend
-    participant DB as Database (Unique Idempotency Store)
+    participant API as API Gateway or Backend
+    participant DB as Database (Idempotency Store)
 
-    Client->>API: POST /payments (Header: Idempotency-Key: "uuid-90124")
-    API->>DB: INSERT INTO idempotency_keys (key, status) VALUES ('uuid-90124', 'PROCESSING');
+    Client->>API: POST /payments (Header: Idempotency-Key: uuid-90124)
+    API->>DB: INSERT INTO idempotency_keys (key, status) VALUES ('uuid-90124', 'PROCESSING')
     Note over DB: Unique index ensures only ONE insert succeeds!
     DB-->>API: Insert OK
     API->>API: Execute Payment Logic ($50 charged)
-    API->>DB: UPDATE idempotency_keys SET status = 'COMPLETED', response = '{status: "success"}';
+    API->>DB: UPDATE idempotency_keys SET status = 'COMPLETED', response = 'OK'
     API-->>Client: 200 OK (Charged)
 
     Note over Client,API: Network fails! Client retries same request:
-    Client->>API: RETRY POST /payments (Header: Idempotency-Key: "uuid-90124")
+    Client->>API: RETRY POST /payments (Header: Idempotency-Key: uuid-90124)
     API->>DB: INSERT INTO idempotency_keys ...
     DB-->>API: UNIQUE CONSTRAINT VIOLATION! (Key already exists)
-    API->>DB: SELECT response FROM idempotency_keys WHERE key = 'uuid-90124';
-    DB-->>API: Returns cached response: '{status: "success"}'
+    API->>DB: SELECT response FROM idempotency_keys WHERE key = 'uuid-90124'
+    DB-->>API: Returns cached response: OK
     API-->>Client: 200 OK (Returns cached result - NO DOUBLE CHARGE!)
 ```
 
@@ -361,7 +361,6 @@ flowchart TD
     subgraph OrderCluster["Order Context (ACID)"]
         OrderDB[("Orders DB")]
         Outbox[("Outbox Table")]
-        OrderDB <--> Outbox
     end
     
     subgraph AsyncPipe["Asynchronous Delivery"]
@@ -374,12 +373,13 @@ flowchart TD
         PayDB[("Payment DB<br/>(Deduplication Table)")]
     end
 
-    User -->|POST /orders| OrderSvc
-    OrderSvc -->|Atomic Commit| OrderCluster
+    User -->|"POST /orders"| OrderSvc
+    OrderSvc -->|"Atomic Write"| OrderDB
+    OrderSvc -->|"Atomic Write"| Outbox
     Outbox --> CDC
     CDC --> Broker
-    Broker -->|At-Least-Once Delivery| Consumer
-    Consumer -->|Idempotent Write| PayDB
+    Broker -->|"At-Least-Once Delivery"| Consumer
+    Consumer -->|"Idempotent Write"| PayDB
 ```
 
 ### The 4 Pillars of Cross-Service Consistency:

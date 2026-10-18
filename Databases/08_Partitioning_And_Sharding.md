@@ -238,7 +238,9 @@ flowchart TD
 ### How to Mitigate Hotspots:
 1. **Compound Shard Key (Salting):**
    * Append a pseudo-random suffix or timestamp hash to the hot key:
-     $$\text{Routing Key} = \text{author\_id} + \text{"\_"} + (\text{random}(1, 10))$$
+     ```text
+     Routing Key = author_id + "_" + random(1, 10)
+     ```
    * The celebrity's posts and interactions are spread across 10 distinct shards rather than suffocating one.
 2. **Dedicated Shards for Super-Tenants:**
    * In enterprise B2B SaaS, detect massive mega-customers (e.g. Walmart, Apple) and isolate them onto their own dedicated physical database cluster.
@@ -273,7 +275,7 @@ sequenceDiagram
     participant S3 as Shard 3
     participant S4 as Shard 4
 
-    App->>Router: SELECT * FROM orders WHERE tracking_num = 'FEDEX-99120';
+    App->>Router: SELECT * FROM orders WHERE tracking_num = 'FEDEX-99120'
     Note over Router: Shard key is missing! Must Scatter.
     par Scatter Phase
         Router->>S1: Query S1
@@ -295,8 +297,10 @@ sequenceDiagram
 
 ### Production Solution: Global Secondary Indexes (Lookup Tables)
 Maintain a small, dedicated lookup table (or key-value cache like Redis):
-$$\text{tracking\_number} \longrightarrow \text{customer\_id (Shard Key)}$$
-1. App queries lookup table: `'FEDEX-99120'` $\rightarrow$ `customer_id: 90124`.
+```text
+tracking_number  --->  customer_id (Shard Key)
+```
+1. App queries lookup table: `'FEDEX-99120'` -> `customer_id: 90124`.
 2. App queries database directly using the shard key: `WHERE customer_id = 90124`.
 
 ---
