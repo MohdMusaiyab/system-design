@@ -403,5 +403,5 @@ Review this checklist when building distributed data architectures:
 
 ---
 
-⬅️ **[Previous: 9. Database Reliability & Recovery](09_Database_Reliability_And_Recovery.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 11. Indexing & Query Optimization ➡️](11_Indexing_And_Query_Optimization.md)**
+⬅️ **[Previous: 9. Database Reliability & Recovery](09_Database_Reliability_And_Recovery.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 11. Database Security ➡️](11_Database_Security.md)**
 
