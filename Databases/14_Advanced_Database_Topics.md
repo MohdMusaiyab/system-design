@@ -17,9 +17,12 @@ SELECT * FROM orders WHERE updated_at > :last_poll_timestamp;
 ```
 
 ```mermaid
-flowchart LR
-    App["Polling Worker<br/>(Every 500ms)"] -->|"Repeated Table Scans<br/>SELECT ... WHERE updated_at > t"| DB[("Relational Database")]
-    DB -->|"High CPU & Lock Contention"| App
+flowchart TD
+    Worker["Polling Worker<br/>(Queries every 500ms)"] -->|"SELECT * FROM orders<br/>WHERE updated_at &gt; last_time"| DB[("Relational Database")]
+
+    DB -->|"Bottleneck"| P1["Resource Exhaustion<br/>Continuous scans burn CPU & disk I/O"]
+    DB -->|"Data Loss"| P2["Missed Hard Deletes<br/>Deleted rows vanish; cannot be queried"]
+    DB -->|"Blind Spot"| P3["Skipped State Transitions<br/>Pending to Processing to Done in 200ms"]
 ```
 
 * **Missing Hard Deletes:** A deleted row physically vanishes from the table. `SELECT` queries can never detect rows that no longer exist.
