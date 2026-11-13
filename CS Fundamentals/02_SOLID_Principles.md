@@ -787,4 +787,4 @@ DIP is the foundational architecture of enterprise backend frameworks and modern
 
 ---
 
-⬅️ **[Previous: 01. Object-Oriented Programming (OOP)](01_Object_Oriented_Programming.md)** | 🏠 **[Back to TOC](README.md)**
+⬅️ **[Previous: 01. Object-Oriented Programming (OOP)](01_Object_Oriented_Programming.md)** | 🏠 **[Back to TOC](README.md)** | **[Next: 03. Memory Management & Garbage Collection ➡️](03_Memory_Management.md)**
